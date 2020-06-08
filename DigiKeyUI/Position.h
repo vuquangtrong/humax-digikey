@@ -2,38 +2,33 @@
 #define POSITION_H
 
 #include <QObject>
+#include <QVariant>
 
 class Position: public QObject
 {
     Q_OBJECT
 
     Q_PROPERTY(
-            float x
-            READ x
+            QVariantList coordinate
+            READ coordinate
             NOTIFY updated)
 
     Q_PROPERTY(
-            float y
-            READ y
-            NOTIFY updated)
-
-    Q_PROPERTY(
-            float z
-            READ z
+            QVariantList distance
+            READ distance
             NOTIFY updated)
 
 public:
-    Position(QObject* parent=nullptr) : QObject(parent) {}
-    Position(Position& position){}
-    Position& operator=(const Position&){}
-
-    ~Position(){}
-    float x(){return 0;}
-    float y(){return 0;}
-    float z(){return 0;}
+    explicit Position(QObject* parent=nullptr) : QObject(parent) {}
+    QVariantList coordinate(){return mCoordinate;}
+    QVariantList distance(){return mDistance;}
 
 signals:
     void updated();
+
+private:
+    QVariantList   mCoordinate{0, 0, 0};
+    QVariantList   mDistance{0, 0, 0, 0, 0, 0, 0, 0};
 };
 
 #endif

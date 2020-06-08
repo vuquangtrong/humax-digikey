@@ -24,83 +24,77 @@ class RepeatTimer(Timer):
 class Position(QObject):
     updated = Signal()
 
-    def __init__(self, parent=None, x=0.0, y=0.0, z=0.0):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self._x = x
-        self._y = y
-        self._z = z
+        self._coordinate = [0.0] * 3  # x, y, z
+        self._distance = [0.0] * 8  # D1 ~ D8
 
-    def __str__(self):
-        return f"({self._x}, {self._y}, {self._z})"
+    def get_coordinate(self):
+        return self._coordinate
 
-    def getx(self):
-        return self._x
+    def set_coordinate(self, value):
+        self._coordinate = value
 
-    def setx(self, x):
-        self._x = x
+    def get_distance(self):
+        return self._distance
 
-    def gety(self):
-        return self._y
+    def set_distance(self, value):
+        self._distance = value
 
-    def sety(self, y):
-        self._y = y
-
-    def getz(self):
-        return self._z
-
-    def setz(self, z):
-        self._z = z
-
-    x = Property(float, fget=getx, fset=setx, notify=updated)
-    y = Property(float, fget=gety, fset=sety, notify=updated)
-    z = Property(float, fget=getz, fset=setz, notify=updated)
+    # PySide2 does not natively convert python list to QVariantList, must use it explicitly
+    coordinate = Property("QVariantList", fget=get_coordinate, fset=set_coordinate, notify=updated)
+    distance = Property("QVariantList", fget=get_distance, fset=set_distance, notify=updated)
 
 
 # DigiKey holds data as backend
 class DigiKey(QObject):
     receiverStatusChanged = Signal()
-    positionUpdated = Signal(str)
+    positionUpdated = Signal(Position)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._receiverStatus = "Waiting..."
+        self._receiver_status = "Waiting..."
         self._position = Position()
-        self._updateTimer = RepeatTimer(1, self.update_ui)
-        self._updateTimer.start()
+        self._update_timer = RepeatTimer(1, self.update_ui)
+        self._update_timer.start()
 
     def __del__(self):
         self.deinit()
 
     def deinit(self):
-        self._updateTimer.cancel()
+        self._update_timer.cancel()
 
-    def position(self):
+    def get_receiver_status(self):
+        return self._receiver_status
+
+    def set_receiver_status(self, value):
+        self._receiver_status = value
+
+    def get_position(self):
         return self._position
 
-    def receiverStatus(self):
-        return self._receiverStatus
+    def set_position(self, value):
+        self._position = value
 
     def update_ui(self):
         self.update_position()
 
     def update_position(self):
         # update calculated position
-        self._position.x += 1
-        self._position.y += 2
+        self.position.coordinate[0] += 5
+        self.position.coordinate[1] += 10
+
+        for i in range(len(self.position.distance)):
+            self.position.distance[i] = i
 
         # print timestamp
-        print(datetime.now(), self.position)
-
-        # make decorated text
-        msg = "Location update " + "<font color=\"#FF0000\">" + str(self.position) + "</font>" + "<br>" + \
-            "D1 = 0.00, D2 = 0.00, D3 = 0.00, D4 = 0.00" + "<br>" + \
-            "D4 = 0.00, D5 = 0.00, D6 = 0.00, D7 = 0.00" + "<br>" + "<br>"
+        print(datetime.now())
 
         # notify
-        self.positionUpdated.emit(msg)
+        self.positionUpdated.emit(self.position)
 
-    receiverStatus = Property(str, fget=receiverStatus, notify=receiverStatusChanged)
-    position = Property(Position, fget=position, notify=positionUpdated)
+    receiverStatus = Property(str, fget=get_receiver_status, fset=set_receiver_status, notify=receiverStatusChanged)
+    position = Property(Position, fget=get_position, fset=set_position, notify=positionUpdated)
 
     @Slot()
     def request_init(self):

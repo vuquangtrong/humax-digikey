@@ -15,15 +15,15 @@ class DigiKey: public QObject
             )
 
     Q_PROPERTY (
-            Position position
+            Position* position
             READ position
             NOTIFY positionUpdated
             )
 
 public:
-    explicit DigiKey(QObject* parent=nullptr) : QObject(parent) {}
+    DigiKey(QObject* parent=nullptr) : QObject(parent) {}
     QString receiverStatus(){return "Waiting...";}
-    Position position(){return mPosition;}
+    Position* position(){return &mPosition;}
 
 signals:
     void receiverStatusChanged();

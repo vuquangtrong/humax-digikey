@@ -6,6 +6,7 @@ TextField {
 
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
+    leftPadding: 6
 
     font.pointSize: 10
 

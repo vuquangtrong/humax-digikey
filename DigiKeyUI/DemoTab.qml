@@ -13,14 +13,14 @@ RowLayout {
         Layout.fillHeight: true
 
         Rectangle {
+            id: calcKey
             width: 8
             height: 8
             radius: 4
-
-            x: DigiKey.position.x
-            y: DigiKey.position.y
-
             color: "blue"
+
+            x: DigiKey.position.coordinate[0]
+            y: DigiKey.position.coordinate[1]
         }
     }
 
@@ -34,7 +34,6 @@ RowLayout {
             Text {
                 text: qsTr("Params")
                 font.pointSize: 10
-                font.bold: true
                 color: "blue"
             }
 
@@ -114,7 +113,6 @@ RowLayout {
                 Layout.topMargin: 6
                 text: qsTr("Anchors")
                 font.pointSize: 10
-                font.bold: true
                 color: "blue"
             }
 
@@ -189,7 +187,6 @@ RowLayout {
                 Layout.topMargin: 6
                 text: qsTr("Receiver Performance")
                 font.pointSize: 10
-                font.bold: true
                 color: "blue"
             }
 
@@ -204,7 +201,6 @@ RowLayout {
                 Layout.topMargin: 6
                 text: qsTr("Distance and Position Update")
                 font.pointSize: 10
-                font.bold: true
                 color: "blue"
             }
 
@@ -230,7 +226,6 @@ RowLayout {
                 clip: true
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-
                 ScrollBar.vertical.policy: ScrollBar.AlwaysOn
 
                 Text {
@@ -240,9 +235,17 @@ RowLayout {
 
                 Connections {
                     target: DigiKey
-                    function onPositionUpdated(msg) {
+                    function onPositionUpdated(position) {
+                        var msg = "Location update <font color='#FF0000'>"
+                                + position.coordinate + "</font><br>"
+                                + "D1 = " + position.distance[0] + ", D2 = " + position.distance[1]
+                                + ", D3 = " + position.distance[2]
+                                + ", D4 = " + position.distance[3] + "<br>" + "D5 = "
+                                + position.distance[4] + ", D6 = "
+                                + position.distance[5] + ", D7 = "
+                                + position.distance[6] + ", D8 = "
+                                + position.distance[7] + "<br><br>"
                         positionLog.text += msg
-                        // scroll to the bottom if no mouse entered
                         positionLogScroller.scrollTo(Qt.Vertical, 1)
                     }
                 }
@@ -252,7 +255,6 @@ RowLayout {
                 Layout.topMargin: 6
                 text: qsTr("Range and Accuracy")
                 font.pointSize: 10
-                font.bold: true
                 color: "blue"
             }
 
@@ -312,5 +314,13 @@ RowLayout {
                 }
             }
         }
+    }
+
+    Component.onCompleted: {
+        console.log("DigiKey", DigiKey)
+        console.log("DigiKey.receiverStatus", DigiKey.receiverStatus)
+        console.log("DigiKey.position", DigiKey.position)
+        console.log("DigiKey.position.coordinate", DigiKey.position.coordinate)
+        console.log("DigiKey.position.distance", DigiKey.position.distance)
     }
 }
