@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>DemoTab.qml</file>
+        <file>NumberInput.qml</file>
+        <file>PositionInput.qml</file>
+    </qresource>
+</RCC>
