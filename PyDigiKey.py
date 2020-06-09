@@ -21,7 +21,7 @@ class RepeatTimer(Timer):
         self.finished.set()
 
 
-# Position holds the coordinate value
+# Position holds the coordinate value and distances to anchors
 class Position(QObject):
     updated = Signal()
 
@@ -47,17 +47,67 @@ class Position(QObject):
     distance = Property("QVariantList", fget=get_distance, fset=set_distance, notify=updated)
 
 
+# Anchor class with its performance data
+class Anchor(QObject):
+    updated = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._rssi = 0
+        self._snr = 0
+        self._nev = 0
+        self._ner = 0
+        self._per = 0
+    
+    def get_rssi(self):
+        return self._rssi
+    
+    def set_rssi(self, value):
+        self._rssi = value
+
+    def get_snr(self):
+        return self._snr
+
+    def set_snr(self, value):
+        self._snr = value
+    
+    def get_nev(self):
+        return self._nev
+
+    def set_nev(self, value):
+        self._nev = value
+    
+    def get_ner(self):
+        return self._ner
+
+    def set_ner(self, value):
+        self._ner = value
+    
+    def get_per(self):
+        return self._per
+
+    def set_per(self, value):
+        self._per = value
+
+    RSSI = Property(float, fget=get_rssi, fset=set_rssi, notify=updated)    
+    SNR = Property(float, fget=get_snr, fset=set_snr, notify=updated)
+    NEV = Property(float, fget=get_nev, fset=set_nev, notify=updated)
+    NER = Property(float, fget=get_ner, fset=set_ner, notify=updated)
+    PER = Property(float, fget=get_per, fset=set_per, notify=updated)
+
+
 # DigiKey holds data as backend
 class DigiKey(QObject):
     receiverStatusChanged = Signal()
     positionUpdated = Signal(Position)
+    anchorUpdated = Signal("QVariantList")
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._receiver_status = "Waiting..."
         self._position = Position()
         self._position_history = [[0 for _ in range(60)] for _ in range(len(self._position.coordinate))]
         self._distance_history = [[0 for _ in range(60)] for _ in range(len(self._position.distance))]
+        self._anchors = [Anchor() for _ in range(8)]
         self._update_timer = RepeatTimer(1, self.update_ui)
         self._update_timer.start()
 
@@ -66,12 +116,6 @@ class DigiKey(QObject):
 
     def deinit(self):
         self._update_timer.cancel()
-
-    def get_receiver_status(self):
-        return self._receiver_status
-
-    def set_receiver_status(self, value):
-        self._receiver_status = value
 
     def get_position(self):
         return self._position
@@ -84,6 +128,9 @@ class DigiKey(QObject):
 
     def get_distance_history(self):
         return self._distance_history
+
+    def get_anchors(self):
+        return self._anchors
 
     def update_ui(self):
         self.update_position()
@@ -100,13 +147,21 @@ class DigiKey(QObject):
             self._distance_history[i].pop(0)
             self._distance_history[i].append(self._position.distance[i])
 
-        # notify
-        self.positionUpdated.emit(self.position)
+        for anchor in self._anchors:
+            anchor.RSSI = randrange(-100, 0)
+            anchor.SNR = randrange(10, 50)
+            anchor.NEV = randrange(0, 9999)
+            anchor.NER = randrange(0, 9999)
+            anchor.PER = random()
 
-    receiverStatus = Property(str, fget=get_receiver_status, fset=set_receiver_status, notify=receiverStatusChanged)
+        # notify
+        self.positionUpdated.emit(self._position)
+        self.anchorUpdated.emit(self._anchors)
+
     position = Property(Position, fget=get_position, fset=set_position, notify=positionUpdated)
     positionHistory = Property("QVariantList", fget=get_position_history, notify=positionUpdated)
     distanceHistory = Property("QVariantList", fget=get_distance_history, notify=positionUpdated)
+    anchors = Property("QVariantList", fget=get_anchors, notify=anchorUpdated)
 
     @Slot()
     def request_init(self):

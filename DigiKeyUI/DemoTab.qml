@@ -56,14 +56,14 @@ RowLayout {
                 Text {
                     text: "F"
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 20
+                    Layout.preferredWidth: 10
                 }
 
                 ComboBox {
                     id: param_f
                     Layout.preferredHeight: 30
-                    Layout.preferredWidth: 80
-                    model: ["CH5", "CH6"]
+                    Layout.preferredWidth: 125
+                    model: ["CH5 - 6489600", "CH6 - 6988800", "CH7 - 6489600", "CH8 - 7488000", "CH9 - 7987200"]
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Carrier Frequency")
                 }
@@ -71,13 +71,13 @@ RowLayout {
                 Text {
                     text: "R"
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 30
+                    Layout.preferredWidth: 10
                 }
 
                 ComboBox {
                     id: param_r
                     Layout.preferredHeight: 30
-                    Layout.preferredWidth: 60
+                    Layout.preferredWidth: 58
                     model: ["0", "1", "2", "3", "4", "5", "6", "7"]
                     currentIndex: 3
                     ToolTip.visible: hovered
@@ -87,14 +87,14 @@ RowLayout {
                 Text {
                     text: "P"
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 30
+                    Layout.preferredWidth: 10
                 }
 
                 ComboBox {
                     id: param_p
                     Layout.preferredHeight: 30
-                    Layout.preferredWidth: 85
-
+                    Layout.preferredWidth: 92
+                    model: ["-12 dbm"]
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Transmission Power in dBm")
 
@@ -194,7 +194,25 @@ RowLayout {
                 id: receiverStatus
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
-                text: DigiKey.receiverStatus
+                Connections {
+                    target: DigiKey
+                    function onAnchorUpdated(anchors) {
+                        var msg = ""
+                        for (var i = 0; i < anchors.length; i++) {
+                            msg += "A" + (i + 1) + ": "
+                            msg += "RSSI = " + anchors[i].RSSI.toFixed(0) + "dBm, "
+                            msg += "SNR = " + anchors[i].SNR.toFixed(2) + "dB, "
+                            msg += "NEV = " + anchors[i].NEV + ", "
+                            msg += "NER = " + anchors[i].NER + ", "
+                            msg += "PER = " + anchors[i].PER.toFixed(2) + "%"
+
+                            if (i < anchors.length - 1)
+                                msg += "\n"
+                        }
+
+                        receiverStatus.text = msg
+                    }
+                }
             }
 
             Text {
@@ -236,15 +254,17 @@ RowLayout {
                 Connections {
                     target: DigiKey
                     function onPositionUpdated(position) {
-                        var msg = "Location update <font color='#FF0000'>"
-                                + position.coordinate + "</font><br>"
-                                + "D1 = " + position.distance[0] + ", D2 = " + position.distance[1]
-                                + ", D3 = " + position.distance[2]
-                                + ", D4 = " + position.distance[3] + "<br>" + "D5 = "
-                                + position.distance[4] + ", D6 = "
-                                + position.distance[5] + ", D7 = "
-                                + position.distance[6] + ", D8 = "
-                                + position.distance[7] + "<br><br>"
+                        var msg = "<br><br>"
+                        msg += "Location update <font color='#FF0000'>" + position.coordinate + "</font><br>"
+                        msg += "D1 = " + position.distance[0] + ", "
+                        msg += "D2 = " + position.distance[1] + ", "
+                        msg += "D3 = " + position.distance[2] + ", "
+                        msg += "D4 = " + position.distance[3] + ", "
+                        msg += "D5 = " + position.distance[4] + ", "
+                        msg += "D6 = " + position.distance[5] + ", "
+                        msg += "D7 = " + position.distance[6] + ", "
+                        msg += "D8 = " + position.distance[7]
+
                         positionLog.text += msg
                         positionLogScroller.scrollTo(Qt.Vertical, 1)
                     }
@@ -290,7 +310,6 @@ RowLayout {
             RowLayout {
                 Layout.topMargin: 6
                 Layout.fillWidth: true
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
                 RoundButton {
                     Layout.preferredWidth: 100
@@ -323,5 +342,13 @@ RowLayout {
         console.log("DigiKey.receiverStatus", DigiKey.receiverStatus)
         console.log("DigiKey.position.coordinate", DigiKey.position.coordinate)
         console.log("DigiKey.position.distance", DigiKey.position.distance)
+        console.log("DigiKey.anchors", DigiKey.anchors)
+        for (var i = 0; i < DigiKey.anchors.length; i++) {
+            console.log(DigiKey.anchors[i].RSSI)
+            console.log(DigiKey.anchors[i].SNR)
+            console.log(DigiKey.anchors[i].NEV)
+            console.log(DigiKey.anchors[i].NER)
+            console.log(DigiKey.anchors[i].PER)
+        }
     }
 }

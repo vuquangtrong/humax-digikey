@@ -9,12 +9,6 @@ class DigiKey: public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(
-            QString receiverStatus
-            READ receiverStatus
-            NOTIFY receiverStatusChanged
-            )
-
     Q_PROPERTY (
             Position* position
             READ position
@@ -33,22 +27,29 @@ class DigiKey: public QObject
             NOTIFY positionUpdated
             )
 
+    Q_PROPERTY(
+            QVariantList anchors
+            READ anchors
+            NOTIFY anchorUpdated
+            )
 public:
     DigiKey(QObject* parent=nullptr) : QObject(parent) {}
     QString receiverStatus(){return "Waiting...";}
     Position* position(){return &mPosition;}
     QVariantList positionHistory(){return mPositionHistory;}
     QVariantList distanceHistory(){return mDistanceHistory;}
-
+    QVariantList anchors(){return mAnchors;}
 
 signals:
     void receiverStatusChanged();
-    void positionUpdated(QString msg);
+    void positionUpdated(Position*);
+    void anchorUpdated(QVariantList);
 
 private:
     Position mPosition;
     QVariantList mPositionHistory;
     QVariantList mDistanceHistory;
+    QVariantList mAnchors;
 };
 
 #endif
