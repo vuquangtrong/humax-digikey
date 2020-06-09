@@ -260,7 +260,7 @@ RowLayout {
 
             Text {
                 Layout.fillWidth: true
-                text: qsTr("The <font color=\"red\">Real Position</font> of your key is inside of uncertainty circles of range <font color=\"blue\">10cm, 20cm, 30cm</font> from the center of 'Calculated Position'")
+                text: qsTr("Uncertainty circles with ranges of <font color=\"blue\">10cm, 20cm, 30cm</font> from the <font color=\"blue\">Calculated Position</font>")
                 wrapMode: Text.WordWrap
             }
 
@@ -276,11 +276,14 @@ RowLayout {
 
                 Text {
                     text: qsTr("Show")
+                    horizontalAlignment: Text.AlignRight
+                    Layout.preferredWidth: 60
                 }
 
                 Switch {
                     id: realKey_sw
-                    Layout.preferredHeight: 30
+                    scale: 0.6
+                    Layout.preferredWidth: 40
                 }
             }
 
@@ -317,9 +320,7 @@ RowLayout {
     }
 
     Component.onCompleted: {
-        console.log("DigiKey", DigiKey)
         console.log("DigiKey.receiverStatus", DigiKey.receiverStatus)
-        console.log("DigiKey.position", DigiKey.position)
         console.log("DigiKey.position.coordinate", DigiKey.position.coordinate)
         console.log("DigiKey.position.distance", DigiKey.position.distance)
     }

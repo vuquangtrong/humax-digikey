@@ -1,8 +1,9 @@
-from datetime import datetime
+
+from random import random, randrange
 from threading import Timer
 from PySide2 import QtCore
 from PySide2.QtCore import QObject, Slot, Signal, Property
-from PySide2.QtGui import QGuiApplication
+from PySide2.QtWidgets import QApplication
 from PySide2.QtQml import QQmlApplicationEngine, qmlRegisterType
 
 
@@ -55,6 +56,8 @@ class DigiKey(QObject):
         super().__init__(parent)
         self._receiver_status = "Waiting..."
         self._position = Position()
+        self._position_history = [[0 for _ in range(60)] for _ in range(len(self._position.coordinate))]
+        self._distance_history = [[0 for _ in range(60)] for _ in range(len(self._position.distance))]
         self._update_timer = RepeatTimer(1, self.update_ui)
         self._update_timer.start()
 
@@ -76,25 +79,34 @@ class DigiKey(QObject):
     def set_position(self, value):
         self._position = value
 
+    def get_position_history(self):
+        return self._position_history
+
+    def get_distance_history(self):
+        return self._distance_history
+
     def update_ui(self):
         self.update_position()
 
     def update_position(self):
-        # update calculated position
-        self.position.coordinate[0] += 5
-        self.position.coordinate[1] += 10
+        # fill fake data for UI dev
+        for i in range(len(self._position.coordinate)):
+            self._position.coordinate[i] += randrange(0, 2) * (1 if random() > 0.5 else -1)
+            self._position_history[i].pop(0)
+            self._position_history[i].append(self._position.coordinate[i])
 
-        for i in range(len(self.position.distance)):
-            self.position.distance[i] = i
-
-        # print timestamp
-        print(datetime.now())
+        for i in range(len(self._position.distance)):
+            self._position.distance[i] = randrange(0, 5)
+            self._distance_history[i].pop(0)
+            self._distance_history[i].append(self._position.distance[i])
 
         # notify
         self.positionUpdated.emit(self.position)
 
     receiverStatus = Property(str, fget=get_receiver_status, fset=set_receiver_status, notify=receiverStatusChanged)
     position = Property(Position, fget=get_position, fset=set_position, notify=positionUpdated)
+    positionHistory = Property("QVariantList", fget=get_position_history, notify=positionUpdated)
+    distanceHistory = Property("QVariantList", fget=get_distance_history, notify=positionUpdated)
 
     @Slot()
     def request_init(self):
@@ -112,6 +124,11 @@ class DigiKey(QObject):
     def request_stop(self):
         print("<Not implemented> Stop")
 
+    @Slot()
+    def request_clear_history(self):
+        self._position_history = [[0 for _ in range(60)] for _ in range(len(self._position.coordinate))]
+        self._distance_history = [[0 for _ in range(60)] for _ in range(len(self._position.distance))]
+
 
 # main function, of course ^^
 def main():
@@ -123,7 +140,7 @@ def main():
     digikey = DigiKey()
 
     # create QT Application
-    app = QGuiApplication()
+    app = QApplication()
 
     # create QML engine
     qml_engine = QQmlApplicationEngine()

@@ -4,5 +4,6 @@
         <file>DemoTab.qml</file>
         <file>NumberInput.qml</file>
         <file>PositionInput.qml</file>
+        <file>DistanceTab.qml</file>
     </qresource>
 </RCC>

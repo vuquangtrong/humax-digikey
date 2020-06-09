@@ -27,8 +27,8 @@ signals:
     void updated();
 
 private:
-    QVariantList   mCoordinate{0, 0, 0};
-    QVariantList   mDistance{0, 0, 0, 0, 0, 0, 0, 0};
+    QVariantList mCoordinate;
+    QVariantList mDistance;
 };
 
 #endif
