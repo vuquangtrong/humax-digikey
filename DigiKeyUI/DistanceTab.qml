@@ -42,7 +42,7 @@ ColumnLayout {
 
             Connections {
                 target: DigiKey
-                function onPositionUpdated(position) {
+                function onPositionUpdated() {
                     graph_distance.removeAllSeries()
                     for (var i = 0; i < DigiKey.distanceHistory.length; i++) {
                         var lines = graph_distance.createSeries(
@@ -134,9 +134,10 @@ ColumnLayout {
             }
         }
     }
-
+    /*
     Component.onCompleted: {
         console.log("DigiKey.positionHistory", DigiKey.positionHistory)
         console.log("DigiKey.distanceHistory", DigiKey.distanceHistory)
     }
+    */
 }

@@ -1,26 +1,177 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
+import QtCharts 2.3
 import Position 1.0
 
 RowLayout {
-
     width: 1280
     height: 720
 
     Item {
+        id: graph
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        Rectangle {
-            id: calcKey
-            width: 8
-            height: 8
-            radius: 4
-            color: "blue"
+        property int pixelsPerMeter: 50
 
-            x: DigiKey.position.coordinate[0]
-            y: DigiKey.position.coordinate[1]
+        function m2px(x) {
+            return x * pixelsPerMeter
+        }
+
+        function translate(context, w, h) {
+            var nx = m2px(Math.floor(w / pixelsPerMeter / 2) - 1)
+            var ny = m2px(Math.floor(h / pixelsPerMeter / 2) + 3)
+            context.translate(nx, ny)
+            context.rotate(-Math.PI / 2)
+        }
+
+        function drawCircle(context, x, y, r, filled, text) {
+            context.beginPath()
+            context.arc(m2px(y), m2px(x), r, 0, 2 * Math.PI)
+            if (filled) {
+                context.fill()
+            } else {
+                context.stroke()
+            }
+
+            if (text !== "") {
+                context.save()
+
+                // move origin and rotate
+                context.translate(m2px(y), m2px(x))
+                context.rotate(Math.PI / 2)
+
+                // draw text
+                context.fillText(text, x + 5, y + 15)
+
+                context.restore()
+            }
+        }
+
+        Image {
+            property double real_width: 3.0
+            property double real_height: 6.0
+            property double offset: 0.5
+            id: car
+            source: "car.png"
+
+            function relocate(w, h) {
+                car.width = graph.m2px(real_width)
+                car.height = graph.m2px(real_height)
+
+                // move to origin
+                var nx = graph.m2px(Math.floor(w / graph.pixelsPerMeter / 2) - 1)
+                var ny = graph.m2px(Math.floor(h / graph.pixelsPerMeter / 2) + 3)
+
+                // relocate
+                car.x = nx - graph.m2px(offset)
+                car.y = ny - car.height + graph.m2px(offset)
+            }
+        }
+
+        Canvas {
+            id: canvas_grid
+            anchors.fill: parent
+
+            onPaint: {
+                car.relocate(canvas_grid.width, canvas_grid.height)
+
+                var ctx = getContext("2d")
+                ctx.strokeStyle = "gray"
+                ctx.lineWidth = 0.5
+                ctx.setLineDash([5, 5])
+
+                // draw grid
+                ctx.save()
+
+                var i = 0
+                for (i = 0; i < height / graph.pixelsPerMeter + 1; i++) {
+                    ctx.beginPath()
+                    ctx.moveTo(0, graph.m2px(i))
+                    ctx.lineTo(width, graph.m2px(i))
+                    ctx.stroke()
+                }
+
+                for (i = 0; i < width / graph.pixelsPerMeter + 1; i++) {
+                    ctx.beginPath()
+                    ctx.moveTo(graph.m2px(i), 0)
+                    ctx.lineTo(graph.m2px(i), height)
+                    ctx.stroke()
+                }
+
+                // draw fixed anchors
+                // move the origin and rotate left
+                graph.translate(ctx, canvas_anchors.width, canvas_anchors.height)
+
+                for(var u=-15; u<=15; u+=5) {
+                    for(var v=-15; v<=15; v+= 5) {
+                        graph.drawCircle(ctx, u, v, 2, true, "(" + u + "," + v + ")")
+                    }
+                }
+
+                ctx.restore()
+            }
+        }
+
+        Canvas {
+            id: canvas_anchors
+            anchors.fill: parent
+
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.fillStyle = "red"
+                ctx.lineWidth = 1
+
+                // draw anchors
+                ctx.save()
+
+                // move the origin and rotate left
+                graph.translate(ctx, canvas_anchors.width, canvas_anchors.height)
+
+                for (var i = 0; i < DigiKey.params.anchors.length; i++) {
+                    graph.drawCircle(ctx, DigiKey.params.anchors[i][0], DigiKey.params.anchors[i][1], 5, true, "A" + (i + 1) + " (" + DigiKey.params.anchors[i][0] +"," +  DigiKey.params.anchors[i][1] + ")")
+                }
+
+                ctx.restore()
+            }
+        }
+
+        Canvas {
+            id: canvas_key
+            anchors.fill: parent
+            Connections {
+                target: DigiKey
+                function onPositionUpdated() {
+                    var ctx = canvas_key.getContext("2d")
+                    if (ctx !== null) {
+                        ctx.reset()
+
+                        ctx.fillStyle = "blue"
+                        ctx.strokeStyle = "blue"
+                        ctx.lineWidth = 1
+
+                        ctx.save()
+                        // move the origin and rotate left
+                        graph.translate(ctx, canvas_key.width,
+                                        canvas_key.height)
+
+                        graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5, true, "Calc. Position (" + DigiKey.position.coordinate[0] + "," +  DigiKey.position.coordinate[1] + ")")
+                        graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.1 * graph.pixelsPerMeter, false, "")
+                        graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.2 * graph.pixelsPerMeter, false, "")
+                        graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.3 * graph.pixelsPerMeter, false, "")
+
+                        if (realKey_sw.checked) {
+                            ctx.save()
+                            ctx.fillStyle = "orange"
+                            graph.drawCircle(ctx, parseFloat(realKey.px), parseFloat(realKey.py), 10, true, "Real Position (" + parseFloat(realKey.px) + "," + parseFloat(realKey.py) + ")")
+                            ctx.restore()
+                        }
+
+                        canvas_key.requestPaint()
+                    }
+                }
+            }
         }
     }
 
@@ -116,69 +267,16 @@ RowLayout {
                 color: "blue"
             }
 
-            ColumnLayout {
-                RowLayout {
+            GridLayout {
+                rows: 4
+                columns: 2
+                Repeater {
+                    model: 8
                     PositionInput {
-                        id: anchor1
-                        name: "A1"
-                        px: "0"
-                        py: "0"
-                        pz: "0"
-                    }
-                    PositionInput {
-                        id: anchor2
-                        name: "A2"
-                        px: "1"
-                        py: "0"
-                        pz: "0"
-                    }
-                }
-                RowLayout {
-                    PositionInput {
-                        id: anchor3
-                        name: "A3"
-                        px: "0"
-                        py: "4"
-                        pz: "0"
-                    }
-                    PositionInput {
-                        id: anchor4
-                        name: "A4"
-                        px: "1"
-                        py: "4"
-                        pz: "0"
-                    }
-                }
-                RowLayout {
-                    PositionInput {
-                        id: anchor5
-                        name: "A5"
-                        px: "0"
-                        py: "1"
-                        pz: "0"
-                    }
-                    PositionInput {
-                        id: anchor6
-                        name: "A6"
-                        px: "1"
-                        py: "1"
-                        pz: "0"
-                    }
-                }
-                RowLayout {
-                    PositionInput {
-                        id: anchor7
-                        name: "A7"
-                        px: "0"
-                        py: "3"
-                        pz: "0"
-                    }
-                    PositionInput {
-                        id: anchor8
-                        name: "A8"
-                        px: "0"
-                        py: "3"
-                        pz: "0"
+                        name: "A" + (index + 1)
+                        px: DigiKey.params.anchors[index][0]
+                        py: DigiKey.params.anchors[index][1]
+                        pz: DigiKey.params.anchors[index][2]
                     }
                 }
             }
@@ -196,7 +294,8 @@ RowLayout {
                 wrapMode: Text.WordWrap
                 Connections {
                     target: DigiKey
-                    function onAnchorUpdated(anchors) {
+                    function onAnchorsUpdated() {
+                        var anchors = DigiKey.anchors
                         var msg = ""
                         for (var i = 0; i < anchors.length; i++) {
                             msg += "A" + (i + 1) + ": "
@@ -253,7 +352,8 @@ RowLayout {
 
                 Connections {
                     target: DigiKey
-                    function onPositionUpdated(position) {
+                    function onPositionUpdated() {
+                        var position = DigiKey.position
                         var msg = "<br><br>"
                         msg += "Location update <font color='#FF0000'>" + position.coordinate + "</font><br>"
                         msg += "D1 = " + position.distance[0] + ", "
@@ -289,9 +389,9 @@ RowLayout {
                     id: realKey
                     name: qsTr("<font color=\"red\">Real Key Position</font>")
                     nameWidth: 83
-                    px: "0"
-                    py: "0"
-                    pz: "0"
+                    px: "3"
+                    py: "3"
+                    pz: "1"
                 }
 
                 Text {
@@ -304,6 +404,7 @@ RowLayout {
                     id: realKey_sw
                     scale: 0.6
                     Layout.preferredWidth: 40
+                    checked: true
                 }
             }
 

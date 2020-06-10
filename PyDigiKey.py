@@ -96,14 +96,73 @@ class Anchor(QObject):
     PER = Property(float, fget=get_per, fset=set_per, notify=updated)
 
 
-# DigiKey holds data as backend
-class DigiKey(QObject):
-    receiverStatusChanged = Signal()
-    positionUpdated = Signal(Position)
-    anchorUpdated = Signal("QVariantList")
+# Params class save settings
+class Params(QObject):
+    updated = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._n = 10
+        self._f = 6489600
+        self._r = 3
+        self._p = 0
+        self._anchors = [
+            [0, 0, 0],
+            [2, 0, 0],
+            [2, 5, 0],
+            [0, 5, 0],
+            [0, 1.5, 0],
+            [2, 1.5, 0],
+            [2, 3.5, 0],
+            [0, 3.5, 0]
+        ]
+
+    def get_n(self):
+        return self._n
+
+    def set_n(self, value):
+        self._n = value
+
+    def get_f(self):
+        return self._f
+
+    def set_f(self, value):
+        self._f = value
+
+    def get_r(self):
+        return self._r
+
+    def set_r(self, value):
+        self._r = value
+
+    def get_p(self):
+        return self._p
+
+    def set_p(self, value):
+        self._p = value
+
+    def get_anchors(self):
+        return self._anchors
+
+    def set_anchors(self, value):
+        self._anchors = value
+
+    N = Property(str, fget=get_n, fset=set_n, notify=updated)
+    F = Property(str, fget=get_f, fset=set_f, notify=updated)
+    R = Property(str, fget=get_r, fset=set_r, notify=updated)
+    P = Property(str, fget=get_p, fset=set_p, notify=updated)
+    anchors = Property("QVariantList", fget=get_anchors, fset=set_anchors, notify=updated)
+
+
+# DigiKey holds data as backend
+class DigiKey(QObject):
+    paramsUpdated = Signal()
+    positionUpdated = Signal()
+    anchorsUpdated = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._params = Params()
         self._position = Position()
         self._position_history = [[0 for _ in range(60)] for _ in range(len(self._position.coordinate))]
         self._distance_history = [[0 for _ in range(60)] for _ in range(len(self._position.distance))]
@@ -116,6 +175,12 @@ class DigiKey(QObject):
 
     def deinit(self):
         self._update_timer.cancel()
+
+    def get_params(self):
+        return self._params
+
+    def set_params(self, value):
+        self._params = value
 
     def get_position(self):
         return self._position
@@ -155,13 +220,14 @@ class DigiKey(QObject):
             anchor.PER = random()
 
         # notify
-        self.positionUpdated.emit(self._position)
-        self.anchorUpdated.emit(self._anchors)
+        self.positionUpdated.emit()
+        self.anchorsUpdated.emit()
 
+    params = Property(Params, fget=get_params, fset=set_params, notify=paramsUpdated)
     position = Property(Position, fget=get_position, fset=set_position, notify=positionUpdated)
     positionHistory = Property("QVariantList", fget=get_position_history, notify=positionUpdated)
     distanceHistory = Property("QVariantList", fget=get_distance_history, notify=positionUpdated)
-    anchors = Property("QVariantList", fget=get_anchors, notify=anchorUpdated)
+    anchors = Property("QVariantList", fget=get_anchors, notify=anchorsUpdated)
 
     @Slot()
     def request_init(self):
@@ -188,8 +254,8 @@ class DigiKey(QObject):
 # main function, of course ^^
 def main():
     # install helper to print qt/qml message
-    # in PyCharm, select 'emulate
-    QtCore.qInstallMessageHandler(lambda mode, ctx, msg: print(msg))
+    # OR select 'emulate terminal in output console' in Run settings
+    # QtCore.qInstallMessageHandler(lambda mode, ctx, msg: print(msg))
 
     # create backend object
     digikey = DigiKey()
@@ -210,6 +276,7 @@ def main():
     context.setContextProperty("DigiKey", digikey)
 
     # load UI
+    print("Start UI")
     qml_engine.load(QtCore.QUrl("DigiKeyUI/main.qml"))
     if not qml_engine.rootObjects():
         print("Can NOT load QML file")
