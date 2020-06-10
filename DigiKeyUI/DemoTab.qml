@@ -5,8 +5,8 @@ import QtCharts 2.3
 import Position 1.0
 
 RowLayout {
-    width: 1280
-    height: 720
+    width: 1920
+    height: 1080
 
     Item {
         id: graph
@@ -152,35 +152,42 @@ RowLayout {
         Canvas {
             id: canvas_key
             anchors.fill: parent
+
+            property int key_status: 0
+
+            onPaint: {
+                if(key_status == 0) {
+                    return
+                }
+                var ctx = canvas_key.getContext("2d")
+                ctx.reset()
+
+                ctx.fillStyle = key_status === 1 ? "blue" : "purple"
+                ctx.strokeStyle = "blue"
+                ctx.lineWidth = 1
+
+                ctx.save()
+                // move the origin and rotate left
+                graph.translate(ctx, canvas_key.width, canvas_key.height)
+
+                graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5, true, "Calc. Position (" + DigiKey.position.coordinate[0].toFixed(2) + ", " +  DigiKey.position.coordinate[1].toFixed(2) + ")")
+                graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.1 * graph.pixelsPerMeter, false, "")
+                graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.2 * graph.pixelsPerMeter, false, "")
+                graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.3 * graph.pixelsPerMeter, false, "")
+
+                if (swRealKey.checked) {
+                    ctx.save()
+                    ctx.fillStyle = "orange"
+                    graph.drawCircle(ctx, parseFloat(realKey.px.text), parseFloat(realKey.py.text), 10, true, "Real Position (" + parseFloat(realKey.px.text).toFixed(2) + ", " + parseFloat(realKey.py.text).toFixed(2) + ")")
+                    ctx.restore()
+                }
+            }
+
             Connections {
                 target: DigiKey
                 function onPositionUpdated(status) {
-                    var ctx = canvas_key.getContext("2d")
-                    if (ctx !== null) {
-                        ctx.reset()
-
-                        ctx.fillStyle = status === 1 ? "blue" : "purple"
-                        ctx.strokeStyle = "blue"
-                        ctx.lineWidth = 1
-
-                        ctx.save()
-                        // move the origin and rotate left
-                        graph.translate(ctx, canvas_key.width, canvas_key.height)
-
-                        graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5, true, "Calc. Position (" + DigiKey.position.coordinate[0].toFixed(2) + ", " +  DigiKey.position.coordinate[1].toFixed(2) + ")")
-                        graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.1 * graph.pixelsPerMeter, false, "")
-                        graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.2 * graph.pixelsPerMeter, false, "")
-                        graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.3 * graph.pixelsPerMeter, false, "")
-
-                        if (swRealKey.checked) {
-                            ctx.save()
-                            ctx.fillStyle = "orange"
-                            graph.drawCircle(ctx, parseFloat(realKey.px), parseFloat(realKey.py), 10, true, "Real Position (" + parseFloat(realKey.px).toFixed(2) + ", " + parseFloat(realKey.py).toFixed(2) + ")")
-                            ctx.restore()
-                        }
-
-                        canvas_key.requestPaint()
-                    }
+                    canvas_key.key_status = status
+                    canvas_key.requestPaint()
                 }
             }
         }
@@ -223,6 +230,7 @@ RowLayout {
         onPixelsPerMeterChanged: {
             canvas_grid.requestPaint()
             canvas_anchors.requestPaint()
+            canvas_key.requestPaint()
         }
     }
 
@@ -374,31 +382,31 @@ RowLayout {
                     PositionInput {
                         name: "A" + (index + 1)
                         Component.onCompleted: {
-                            px = DigiKey.params.anchors[index][0]
-                            py = DigiKey.params.anchors[index][1]
-                            pz = DigiKey.params.anchors[index][2]
+                            px.text = DigiKey.params.anchors[index][0]
+                            py.text = DigiKey.params.anchors[index][1]
+                            pz.text = DigiKey.params.anchors[index][2]
                         }
 
-                        onPxChanged: {
-                            var p = parseFloat(px)
-                            if(isNaN(p)) {
-                               px = ''
+                        onPxTextChanged: {
+                            var p = parseFloat(px.text)
+                            if(isNaN(p) && px.text != '-') {
+                               px.text = ''
                             }
                             DigiKey.params.set_anchor(index, 0, p)
                         }
 
-                        onPyChanged: {
-                            var p = parseFloat(py)
-                            if(isNaN(p)) {
-                               py = ''
+                        onPyTextChanged: {
+                            var p = parseFloat(py.text)
+                            if(isNaN(p) && py.text != '-') {
+                               py.text = ''
                             }
                             DigiKey.params.set_anchor(index, 1, p)
                         }
 
-                        onPzChanged: {
-                            var p = parseFloat(pz)
-                            if(isNaN(p)) {
-                               pz = ''
+                        onPzTextChanged: {
+                            var p = parseFloat(pz.text)
+                            if(isNaN(p) && pz.text != '-') {
+                               pz.text = ''
                             }
                             DigiKey.params.set_anchor(index, 2, p)
                         }
@@ -526,9 +534,9 @@ RowLayout {
                     id: realKey
                     name: qsTr("<font color=\"red\">Real Key Position</font>")
                     nameWidth: 83
-                    px: "3"
-                    py: "3"
-                    pz: "1"
+                    px.text: "3"
+                    py.text: "3"
+                    pz.text: "1"
                 }
 
                 Text {

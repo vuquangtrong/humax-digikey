@@ -5,8 +5,8 @@ import QtCharts 2.3
 import Position 1.0
 
 ColumnLayout {
-    width: 1280
-    height: 720
+    width: 1920
+    height: 1080
 
     Item {
         Layout.fillWidth: true
@@ -46,7 +46,7 @@ ColumnLayout {
                     graph_distance.removeAllSeries()
                     for (var i = 0; i < DigiKey.distanceHistory.length; i++) {
                         var lines = graph_distance.createSeries(
-                                    ChartView.SeriesTypeLine, "A" + i,
+                                    ChartView.SeriesTypeLine, "A" + (i+1),
                                     axis_x_distance, axis_y_distance)
                         var p = DigiKey.distanceHistory[i]
                         for (var j = 0; j < p.length; j++) {

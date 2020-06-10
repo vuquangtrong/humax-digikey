@@ -6,11 +6,13 @@ RowLayout {
 
     property int nameWidth: 30
     property alias name: name.text
-    property alias px: px.text
-    property alias py: py.text
-    property alias pz: pz.text
+    property alias px: px
+    property alias py: py
+    property alias pz: pz
 
-    signal textChanged
+    signal pxTextChanged
+    signal pyTextChanged
+    signal pzTextChanged
 
     Text {
         id: name
@@ -24,7 +26,7 @@ RowLayout {
         Layout.preferredHeight: 30
         Layout.preferredWidth: 50
         text: "0.00"
-        onTextChanged: position.textChanged()
+        onTextChanged: position.pxTextChanged()
     }
 
     NumberInput {
@@ -32,7 +34,7 @@ RowLayout {
         Layout.preferredHeight: 30
         Layout.preferredWidth: 50
         text: "0.00"
-        onTextChanged: position.textChanged()
+        onTextChanged: position.pyTextChanged()
     }
 
     NumberInput {
@@ -40,6 +42,6 @@ RowLayout {
         Layout.preferredHeight: 30
         Layout.preferredWidth: 50
         text: "0.00"
-        onTextChanged: position.textChanged()
+        onTextChanged: position.pzTextChanged()
     }
 }
