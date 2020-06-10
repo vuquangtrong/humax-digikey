@@ -54,8 +54,9 @@ Window {
             id: distanceTab
         }
     }
-
+    /*
     Component.onCompleted: {
         console.log("DigiKey", DigiKey)
     }
+    */
 }

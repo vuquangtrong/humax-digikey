@@ -13,7 +13,7 @@ RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        property int pixelsPerMeter: 50
+        property int pixelsPerMeter: sldPpm.value
 
         function m2px(x) {
             return x * pixelsPerMeter
@@ -50,11 +50,12 @@ RowLayout {
         }
 
         Image {
-            property double real_width: 3.0
-            property double real_height: 6.0
             property double offset: 0.5
+            property double real_width: 2 + offset
+            property double real_height: 5 + offset
             id: car
             source: "car.png"
+            visible: swCar.checked
 
             function relocate(w, h) {
                 car.width = graph.m2px(real_width)
@@ -78,6 +79,8 @@ RowLayout {
                 car.relocate(canvas_grid.width, canvas_grid.height)
 
                 var ctx = getContext("2d")
+                ctx.reset()
+
                 ctx.strokeStyle = "gray"
                 ctx.lineWidth = 0.5
                 ctx.setLineDash([5, 5])
@@ -106,7 +109,7 @@ RowLayout {
 
                 for(var u=-15; u<=15; u+=5) {
                     for(var v=-15; v<=15; v+= 5) {
-                        graph.drawCircle(ctx, u, v, 2, true, "(" + u + "," + v + ")")
+                        graph.drawCircle(ctx, u, v, 2, true, "(" + u + ", " + v + ")")
                     }
                 }
 
@@ -120,6 +123,8 @@ RowLayout {
 
             onPaint: {
                 var ctx = getContext("2d")
+                ctx.reset()
+
                 ctx.fillStyle = "red"
                 ctx.lineWidth = 1
 
@@ -130,10 +135,17 @@ RowLayout {
                 graph.translate(ctx, canvas_anchors.width, canvas_anchors.height)
 
                 for (var i = 0; i < DigiKey.params.anchors.length; i++) {
-                    graph.drawCircle(ctx, DigiKey.params.anchors[i][0], DigiKey.params.anchors[i][1], 5, true, "A" + (i + 1) + " (" + DigiKey.params.anchors[i][0] +"," +  DigiKey.params.anchors[i][1] + ")")
+                    graph.drawCircle(ctx, DigiKey.params.anchors[i][0], DigiKey.params.anchors[i][1], 5, true, "A" + (i + 1) + " (" + DigiKey.params.anchors[i][0] +", " +  DigiKey.params.anchors[i][1] + ")")
                 }
 
                 ctx.restore()
+            }
+
+            Connections {
+                target: DigiKey
+                function onParamsUpdated() {
+                    canvas_anchors.requestPaint()
+                }
             }
         }
 
@@ -142,29 +154,28 @@ RowLayout {
             anchors.fill: parent
             Connections {
                 target: DigiKey
-                function onPositionUpdated() {
+                function onPositionUpdated(status) {
                     var ctx = canvas_key.getContext("2d")
                     if (ctx !== null) {
                         ctx.reset()
 
-                        ctx.fillStyle = "blue"
+                        ctx.fillStyle = status === 1 ? "blue" : "purple"
                         ctx.strokeStyle = "blue"
                         ctx.lineWidth = 1
 
                         ctx.save()
                         // move the origin and rotate left
-                        graph.translate(ctx, canvas_key.width,
-                                        canvas_key.height)
+                        graph.translate(ctx, canvas_key.width, canvas_key.height)
 
-                        graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5, true, "Calc. Position (" + DigiKey.position.coordinate[0] + "," +  DigiKey.position.coordinate[1] + ")")
+                        graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5, true, "Calc. Position (" + DigiKey.position.coordinate[0].toFixed(2) + ", " +  DigiKey.position.coordinate[1].toFixed(2) + ")")
                         graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.1 * graph.pixelsPerMeter, false, "")
                         graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.2 * graph.pixelsPerMeter, false, "")
                         graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.3 * graph.pixelsPerMeter, false, "")
 
-                        if (realKey_sw.checked) {
+                        if (swRealKey.checked) {
                             ctx.save()
                             ctx.fillStyle = "orange"
-                            graph.drawCircle(ctx, parseFloat(realKey.px), parseFloat(realKey.py), 10, true, "Real Position (" + parseFloat(realKey.px) + "," + parseFloat(realKey.py) + ")")
+                            graph.drawCircle(ctx, parseFloat(realKey.px), parseFloat(realKey.py), 10, true, "Real Position (" + parseFloat(realKey.px).toFixed(2) + ", " + parseFloat(realKey.py).toFixed(2) + ")")
                             ctx.restore()
                         }
 
@@ -172,6 +183,46 @@ RowLayout {
                     }
                 }
             }
+        }
+
+        ColumnLayout {
+            spacing: 0
+
+            RowLayout {
+                spacing: 0
+
+                Text {
+                    text: qsTr("Show Car")
+                }
+
+                Switch {
+                    id: swCar
+                    scale: 0.6
+                    checked: true
+                }
+            }
+
+            RowLayout {
+                spacing: 0
+
+                Text {
+                    text: qsTr("Px per Metter")
+                }
+
+                Slider {
+                    id: sldPpm
+                    scale: 0.6
+                    value: 50
+                    from: 50
+                    to: 100
+                    stepSize: 5
+                }
+            }
+        }
+
+        onPixelsPerMeterChanged: {
+            canvas_grid.requestPaint()
+            canvas_anchors.requestPaint()
         }
     }
 
@@ -199,9 +250,16 @@ RowLayout {
                     id: param_n
                     Layout.preferredHeight: 30
                     Layout.preferredWidth: 50
-                    text: "10"
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Number of ranging cycles")
+
+                    Component.onCompleted: {
+                        text = DigiKey.params.N
+                    }
+
+                    onTextEdited: {
+                        DigiKey.params.N = parseInt(text)
+                    }
                 }
 
                 Text {
@@ -211,12 +269,28 @@ RowLayout {
                 }
 
                 ComboBox {
+                    property var items: []
                     id: param_f
                     Layout.preferredHeight: 30
                     Layout.preferredWidth: 125
-                    model: ["CH5 - 6489600", "CH6 - 6988800", "CH7 - 6489600", "CH8 - 7488000", "CH9 - 7987200"]
+                    model: items
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Carrier Frequency")
+
+                    Component.onCompleted: {
+                        var f = "" + DigiKey.params.F
+                        items = ["CH5 - 6489600", "CH6 - 6988800", "CH7 - 6489600", "CH8 - 7488000", "CH9 - 7987200"]
+                        for (var i=0; i<items.length; i++) {
+                            if (items[i].includes(f)) {
+                                currentIndex = i
+                                break
+                            }
+                        }
+                    }
+
+                    onDisplayTextChanged: {
+                        DigiKey.params.F = parseInt(displayText.split(" - ")[1])
+                    }
                 }
 
                 Text {
@@ -226,13 +300,28 @@ RowLayout {
                 }
 
                 ComboBox {
+                    property var items: []
                     id: param_r
                     Layout.preferredHeight: 30
                     Layout.preferredWidth: 58
-                    model: ["0", "1", "2", "3", "4", "5", "6", "7"]
-                    currentIndex: 3
+                    model: items
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("RX index for Radio Setting")
+
+                    Component.onCompleted: {
+                        var r = "" + DigiKey.params.R
+                        items = ["0", "1", "2", "3", "4", "5", "6", "7"]
+                        for (var i=0; i<items.length; i++) {
+                            if (items[i].includes(r)) {
+                                currentIndex = i
+                                break
+                            }
+                        }
+                    }
+
+                    onDisplayTextChanged: {
+                        DigiKey.params.R = parseInt(displayText)
+                    }
                 }
 
                 Text {
@@ -242,20 +331,30 @@ RowLayout {
                 }
 
                 ComboBox {
+                    property var items: []
                     id: param_p
                     Layout.preferredHeight: 30
                     Layout.preferredWidth: 92
-                    model: ["-12 dbm"]
+                    model: items
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Transmission Power in dBm")
 
                     Component.onCompleted: {
-                        var power_items = []
+                        var p = "" + DigiKey.params.P + " dBm"
                         for (var i = -12; i <= 14; i++) {
-                            power_items.push("" + i + " dBm")
+                            items.push("" + i + " dBm")
                         }
-                        model = power_items
-                        currentIndex = 12 /* 0 dBm */
+                        model = items
+                        for (i=0; i<items.length; i++) {
+                            if(items[i] === p) {
+                                currentIndex = i
+                                break
+                            }
+                        }
+                    }
+
+                    onDisplayTextChanged: {
+                        DigiKey.params.P = parseInt(displayText)
                     }
                 }
             }
@@ -274,9 +373,35 @@ RowLayout {
                     model: 8
                     PositionInput {
                         name: "A" + (index + 1)
-                        px: DigiKey.params.anchors[index][0]
-                        py: DigiKey.params.anchors[index][1]
-                        pz: DigiKey.params.anchors[index][2]
+                        Component.onCompleted: {
+                            px = DigiKey.params.anchors[index][0]
+                            py = DigiKey.params.anchors[index][1]
+                            pz = DigiKey.params.anchors[index][2]
+                        }
+
+                        onPxChanged: {
+                            var p = parseFloat(px)
+                            if(isNaN(p)) {
+                               px = ''
+                            }
+                            DigiKey.params.set_anchor(index, 0, p)
+                        }
+
+                        onPyChanged: {
+                            var p = parseFloat(py)
+                            if(isNaN(p)) {
+                               py = ''
+                            }
+                            DigiKey.params.set_anchor(index, 1, p)
+                        }
+
+                        onPzChanged: {
+                            var p = parseFloat(pz)
+                            if(isNaN(p)) {
+                               pz = ''
+                            }
+                            DigiKey.params.set_anchor(index, 2, p)
+                        }
                     }
                 }
             }
@@ -352,18 +477,30 @@ RowLayout {
 
                 Connections {
                     target: DigiKey
-                    function onPositionUpdated() {
+                    function onPositionUpdated(status) {
                         var position = DigiKey.position
                         var msg = "<br><br>"
-                        msg += "Location update <font color='#FF0000'>" + position.coordinate + "</font><br>"
-                        msg += "D1 = " + position.distance[0] + ", "
-                        msg += "D2 = " + position.distance[1] + ", "
-                        msg += "D3 = " + position.distance[2] + ", "
-                        msg += "D4 = " + position.distance[3] + ", "
-                        msg += "D5 = " + position.distance[4] + ", "
-                        msg += "D6 = " + position.distance[5] + ", "
-                        msg += "D7 = " + position.distance[6] + ", "
-                        msg += "D8 = " + position.distance[7]
+                        if (status == 1) {
+                            msg += "Location update <font color='red'>"
+                            msg += "" + position.coordinate[0].toFixed(2) + ", "
+                            msg += "" + position.coordinate[1].toFixed(2) + ", "
+                            msg += "" + position.coordinate[2].toFixed(2)
+                            msg += "</font><br>"
+                            msg += "D1 = " + position.distance[0].toFixed(2) + ", "
+                            msg += "D2 = " + position.distance[1].toFixed(2) + ", "
+                            msg += "D3 = " + position.distance[2].toFixed(2) + ", "
+                            msg += "D4 = " + position.distance[3].toFixed(2) + "<br>"
+                            msg += "D5 = " + position.distance[4].toFixed(2) + ", "
+                            msg += "D6 = " + position.distance[5].toFixed(2) + ", "
+                            msg += "D7 = " + position.distance[6].toFixed(2) + ", "
+                            msg += "D8 = " + position.distance[7].toFixed(2)
+                        } else if (status == -1) {
+                            msg += "<font color='purple'>No new location received</font>"
+                        } else if (status == -2) {
+                            msg += "<font color='purple'>Can not calculate location</font>"
+                        } else {
+                            msg += "Unknown data"
+                        }
 
                         positionLog.text += msg
                         positionLogScroller.scrollTo(Qt.Vertical, 1)
@@ -401,7 +538,7 @@ RowLayout {
                 }
 
                 Switch {
-                    id: realKey_sw
+                    id: swRealKey
                     scale: 0.6
                     Layout.preferredWidth: 40
                     checked: true
@@ -438,7 +575,7 @@ RowLayout {
             }
         }
     }
-
+    /*
     Component.onCompleted: {
         console.log("DigiKey.receiverStatus", DigiKey.receiverStatus)
         console.log("DigiKey.position.coordinate", DigiKey.position.coordinate)
@@ -452,4 +589,5 @@ RowLayout {
             console.log(DigiKey.anchors[i].PER)
         }
     }
+    */
 }

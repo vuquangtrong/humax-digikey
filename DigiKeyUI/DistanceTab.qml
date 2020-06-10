@@ -94,7 +94,7 @@ ColumnLayout {
 
             Connections {
                 target: DigiKey
-                function onPositionUpdated(position) {
+                function onPositionUpdated(status) {
                     graph_position.removeAllSeries()
                     var names = ['X', 'Y', 'Z']
                     for (var i = 0; i < DigiKey.positionHistory.length; i++) {
