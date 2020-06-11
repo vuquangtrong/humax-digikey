@@ -310,7 +310,7 @@ RowLayout {
             anchors.bottom: parent.bottom
 
             RowLayout {
-                Layout.preferredHeight: 30
+                Layout.preferredHeight: 32
 
                 Text {
                     Layout.preferredWidth: 20
@@ -366,7 +366,7 @@ RowLayout {
             }
 
             RowLayout {
-                Layout.preferredHeight: 30
+                Layout.preferredHeight: 32
 
                 Text {
                     Layout.preferredWidth: 50
@@ -418,6 +418,7 @@ RowLayout {
         onPixelsPerMeterChanged: {
             canvas_grid.requestPaint()
             canvas_anchors.requestPaint()
+            canvas_real_key.requestPaint()
             canvas_key.requestPaint()
         }
     }
@@ -675,7 +676,7 @@ RowLayout {
                         var position = DigiKey.position
                         var msg = "<br><br>"
                         if (status === 1) {
-                            msg += "Location update (" + positionLog.count + ") at <font color='red'>"
+                            msg += "Location update (" + positionLog.count + ") at <font color='blue'>"
                             msg += "" + position.coordinate[0].toFixed(2) + ", "
                             msg += "" + position.coordinate[1].toFixed(2) + ", "
                             msg += "" + position.coordinate[2].toFixed(2)
@@ -689,15 +690,11 @@ RowLayout {
                         }
 
                         msg += "<br>"
-                        msg += "D1 = <font color='green'>" + position.distance[0].toFixed(2) + "</font>, "
-                        msg += "D2 = <font color='green'>" + position.distance[1].toFixed(2) + "</font>, "
-                        msg += "D3 = <font color='green'>" + position.distance[2].toFixed(2) + "</font>, "
-                        msg += "D4 = <font color='green'>" + position.distance[3].toFixed(2) + "</font><br>"
-                        msg += "D5 = <font color='green'>" + position.distance[4].toFixed(2) + "</font>, "
-                        msg += "D6 = <font color='green'>" + position.distance[5].toFixed(2) + "</font>, "
-                        msg += "D7 = <font color='green'>" + position.distance[6].toFixed(2) + "</font>, "
-                        msg += "D8 = <font color='green'>" + position.distance[7].toFixed(2) + "</font>"
-
+                        for (var i=0; i<position.distance.length; i++) {
+                            var d = parseFloat(position.distance[i])
+                            msg += "D" + (i+1) + " = " + ((isNaN(d) || d < 0) ? "<font color='red'>failed" : "<font color='green'>" + position.distance[i].toFixed(2)) + "</font>, "
+                            if(i==3) msg += "<br>"
+                        }
                         positionLog.count += 1
                         positionLog.text += msg
                         positionLogScroller.scrollTo(Qt.Vertical, 1)
@@ -723,9 +720,21 @@ RowLayout {
                     id: realKey
                     name: qsTr("<font color=\"red\">Real Key Position</font>")
                     nameWidth: 83
-                    px.text: "1"
-                    py.text: "3"
+                    px.text: "0.75"
+                    py.text: "2.75"
                     pz.text: "0"
+
+                    onPxTextChanged: {
+                        if(swRealKey != null && swRealKey.checked) canvas_real_key.requestPaint()
+                    }
+
+                    onPyTextChanged: {
+                        if(swRealKey != null && swRealKey.checked) canvas_real_key.requestPaint()
+                    }
+
+                    onPzTextChanged: {
+                        if(swRealKey != null && swRealKey.checked) canvas_real_key.requestPaint()
+                    }
                 }
 
                 Text {

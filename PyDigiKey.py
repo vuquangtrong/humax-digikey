@@ -313,7 +313,7 @@ class DigiKey(QObject):
             position_status = 0
             try:
                 location_data = self._ui_range.getLocation()
-                #print("got location", location_data)
+                print("got location", location_data)
 
                 if location_data[0] == 'nodata':
                     position_status = -1
@@ -329,32 +329,42 @@ class DigiKey(QObject):
                         if len(self._position_history[i]) > 60:
                             self._position_history[i].pop(0)
                         self._position_history[i].append(self._position.coordinate[i])
-                except Exception as _:
-                    pass
+                except Exception as ex:
+                    print(ex)
 
                 try:
-                    self._position.distance = location_data[3:]
+                    for i in range(len(self._position.distance)):
+                        d = location_data[3+i]
+                        if d < 1000:
+                            try:
+                                self._position.distance[i] = float(d)
+                            except Exception as _:
+                                self._position.distance[i] = -1
+                        else:
+                            self._position.distance[i] = -1
+
                     for i in range(len(self._position.distance)):
                         if len(self._distance_history[i]) > 60:
                             self._distance_history[i].pop(0)
                         self._distance_history[i].append(self._position.distance[i])
-                except Exception as _:
-                    pass
+                except Exception as ex:
+                    print(ex)
+
             except Exception as _:
-                pass
+                print(ex)
 
             # get performance
             for i in range(len(self._anchors)):
                 try:
                     performance = self._ui_range.getAnchorPerformance(i)
-                    #print("got anchor performance", performance)
-                    self._anchors[i].RSSI = performance[0]
-                    self._anchors[i].SNR = performance[1]
-                    self._anchors[i].NEV = performance[2]
-                    self._anchors[i].NER = performance[3]
-                    self._anchors[i].PER = performance[4]
-                except Exception as _:
-                    pass
+                    print("got anchor performance", performance)
+                    self._anchors[i].RSSI = float(performance[0])
+                    self._anchors[i].SNR = float(performance[1])
+                    self._anchors[i].NEV = float(performance[2])
+                    self._anchors[i].NER = float(performance[3])
+                    self._anchors[i].PER = float(performance[4])
+                except Exception as ex:
+                    print(ex)
 
             # notify
             self.positionUpdated.emit(position_status)

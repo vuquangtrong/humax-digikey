@@ -55,6 +55,8 @@ ColumnLayout {
                     } else if (d > max) {
                         max = d
                     }
+
+                    if(min < 0) min = 0
                 }
             }
 
