@@ -16,24 +16,18 @@ Window {
         id: tabBar
         width: parent.width
 
-        TabButton {
-            text: qsTr("Demo")
-        }
-
-        TabButton {
-            text: qsTr("Distance")
-        }
-
-        TabButton {
-            text: qsTr("CAN Data")
-        }
-
-        TabButton {
-            text: qsTr("CIR 1")
-        }
-
-        TabButton {
-            text: qsTr("CIR 2")
+        Repeater {
+            model: [
+                qsTr("Demo"),
+                qsTr("Distance"),
+                qsTr("CAN Data"),
+                qsTr("CIR 1"),
+                qsTr("CIR 2")
+            ]
+            TabButton {
+                text: modelData
+                font.pointSize: 12
+            }
         }
     }
 

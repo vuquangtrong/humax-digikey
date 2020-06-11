@@ -423,17 +423,31 @@ RowLayout {
         }
     }
 
-    Item {
-        Layout.preferredWidth: 420
+    Rectangle {
+        Layout.preferredWidth: 426
         Layout.fillHeight: true
+        radius: 10
+        color: "#FCFCFC"
+        border.color: "#687D91"
 
         ColumnLayout {
             anchors.fill: parent
+            anchors.margins: 6
 
-            Text {
-                text: qsTr("Params")
-                font.pointSize: 10
-                color: "blue"
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 30
+                radius: 5
+                color: "#E6E9ED"
+
+                Text {
+                    anchors.fill: parent
+                    text: qsTr("Params")
+                    leftPadding: 5
+                    verticalAlignment: Text.AlignVCenter
+                    font.pointSize: 10
+                    color: "blue"
+                }
             }
 
             RowLayout {
@@ -441,6 +455,7 @@ RowLayout {
                     text: "N"
                     horizontalAlignment: Text.AlignRight
                     Layout.preferredWidth: 30
+                    font.pixelSize: 14
                 }
 
                 NumberInput {
@@ -467,14 +482,15 @@ RowLayout {
                 Text {
                     text: "F"
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 10
+                    Layout.preferredWidth: 8
+                    font.pixelSize: 14
                 }
 
                 ComboBox {
                     property var items: []
                     id: param_f
                     Layout.preferredHeight: 30
-                    Layout.preferredWidth: 125
+                    Layout.preferredWidth: 124
                     model: items
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Carrier Frequency")
@@ -498,7 +514,8 @@ RowLayout {
                 Text {
                     text: "R"
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 10
+                    Layout.preferredWidth: 8
+                    font.pixelSize: 14
                 }
 
                 ComboBox {
@@ -529,7 +546,8 @@ RowLayout {
                 Text {
                     text: "P"
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 10
+                    Layout.preferredWidth: 8
+                    font.pixelSize: 14
                 }
 
                 ComboBox {
@@ -561,11 +579,20 @@ RowLayout {
                 }
             }
 
-            Text {
-                Layout.topMargin: 6
-                text: qsTr("Anchors")
-                font.pointSize: 10
-                color: "blue"
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 30
+                radius: 5
+                color: "#E6E9ED"
+
+                Text {
+                    anchors.fill: parent
+                    text: qsTr("Anchors")
+                    leftPadding: 5
+                    verticalAlignment: Text.AlignVCenter
+                    font.pointSize: 10
+                    color: "blue"
+                }
             }
 
             GridLayout {
@@ -596,11 +623,20 @@ RowLayout {
                 }
             }
 
-            Text {
-                Layout.topMargin: 6
-                text: qsTr("Receiver Performance")
-                font.pointSize: 10
-                color: "blue"
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 30
+                radius: 5
+                color: "#E6E9ED"
+
+                Text {
+                    anchors.fill: parent
+                    text: qsTr("Receiver Performance")
+                    leftPadding: 5
+                    verticalAlignment: Text.AlignVCenter
+                    font.pointSize: 10
+                    color: "blue"
+                }
             }
 
             Text {
@@ -631,11 +667,20 @@ RowLayout {
                 }
             }
 
-            Text {
-                Layout.topMargin: 6
-                text: qsTr("Distance and Position Update")
-                font.pointSize: 10
-                color: "blue"
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 30
+                radius: 5
+                color: "#E6E9ED"
+
+                Text {
+                    anchors.fill: parent
+                    text: qsTr("Position and Distance")
+                    leftPadding: 5
+                    verticalAlignment: Text.AlignVCenter
+                    font.pointSize: 10
+                    color: "blue"
+                }
             }
 
             ScrollView {
@@ -661,7 +706,6 @@ RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.leftMargin: 15
-                ScrollBar.vertical.policy: ScrollBar.AlwaysOn
 
                 Text {
                     id: positionLog
@@ -702,20 +746,31 @@ RowLayout {
                 }
             }
 
-            Text {
-                Layout.topMargin: 6
-                text: qsTr("Range and Accuracy")
-                font.pointSize: 10
-                color: "blue"
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 30
+                radius: 5
+                color: "#E6E9ED"
+
+                Text {
+                    anchors.fill: parent
+                    text: qsTr("Accuracy")
+                    leftPadding: 5
+                    verticalAlignment: Text.AlignVCenter
+                    font.pointSize: 10
+                    color: "blue"
+                }
             }
 
             Text {
                 Layout.fillWidth: true
+                Layout.leftMargin: 5
                 text: qsTr("Uncertainty circles with ranges of <font color=\"blue\">10cm, 20cm, 30cm</font> from the <font color=\"blue\">Calculated Position</font>")
                 wrapMode: Text.WordWrap
             }
 
             RowLayout {
+                Layout.leftMargin: 5
                 PositionInput {
                     id: realKey
                     name: qsTr("<font color=\"red\">Real Key Position</font>")
