@@ -5,6 +5,7 @@ import QtCharts 2.3
 import Position 1.0
 
 ColumnLayout {
+    id: distanceTab
     width: 1920
     height: 1080
 
@@ -19,6 +20,23 @@ ColumnLayout {
             titleFont.bold: true
             anchors.fill: parent
             antialiasing: true
+
+            function draw(force = false) {
+                if(force || distanceTab.visible) {
+                    graph_distance.removeAllSeries()
+                    for (var i = 0; i < DigiKey.distanceHistory.length; i++) {
+                        var lines = graph_distance.createSeries(
+                                    ChartView.SeriesTypeLine, "A" + (i+1),
+                                    axis_x_distance, axis_y_distance)
+                        var p = DigiKey.distanceHistory[i]
+                        for (var j = 0; j < p.length; j++) {
+                            var d = p[j]
+                            axis_y_distance.setRange(d)
+                            lines.append(j, d)
+                        }
+                    }
+                }
+            }
 
             ValueAxis {
                 id: axis_x_distance
@@ -40,21 +58,12 @@ ColumnLayout {
                 }
             }
 
+            Component.onCompleted: graph_distance.draw(true)
+
             Connections {
                 target: DigiKey
                 function onPositionUpdated() {
-                    graph_distance.removeAllSeries()
-                    for (var i = 0; i < DigiKey.distanceHistory.length; i++) {
-                        var lines = graph_distance.createSeries(
-                                    ChartView.SeriesTypeLine, "A" + (i+1),
-                                    axis_x_distance, axis_y_distance)
-                        var p = DigiKey.distanceHistory[i]
-                        for (var j = 0; j < p.length; j++) {
-                            var d = p[j]
-                            axis_y_distance.setRange(d)
-                            lines.append(j, d)
-                        }
-                    }
+                    graph_distance.draw()
                 }
             }
         }
@@ -72,6 +81,23 @@ ColumnLayout {
             anchors.fill: parent
             antialiasing: true
 
+            function draw(force = false) {
+                if(force || distanceTab.visible) {
+                    graph_position.removeAllSeries()
+                    var names = ['X', 'Y', 'Z']
+                    for (var i = 0; i < DigiKey.positionHistory.length; i++) {
+                        var lines = graph_position.createSeries(
+                                    ChartView.SeriesTypeLine, names[i],
+                                    axis_x_position, axis_y_position)
+                        var p = DigiKey.positionHistory[i]
+                        for (var j = 0; j < p.length; j++) {
+                            var d = p[j]
+                            axis_y_position.setRange(d)
+                            lines.append(j, d)
+                        }
+                    }
+                }
+            }
             ValueAxis {
                 id: axis_x_position
                 min: 0
@@ -92,22 +118,12 @@ ColumnLayout {
                 }
             }
 
+            Component.onCompleted: graph_position.draw(true)
+
             Connections {
                 target: DigiKey
                 function onPositionUpdated(status) {
-                    graph_position.removeAllSeries()
-                    var names = ['X', 'Y', 'Z']
-                    for (var i = 0; i < DigiKey.positionHistory.length; i++) {
-                        var lines = graph_position.createSeries(
-                                    ChartView.SeriesTypeLine, names[i],
-                                    axis_x_position, axis_y_position)
-                        var p = DigiKey.positionHistory[i]
-                        for (var j = 0; j < p.length; j++) {
-                            var d = p[j]
-                            axis_y_position.setRange(d)
-                            lines.append(j, d)
-                        }
-                    }
+                    graph_position.draw()
                 }
             }
         }
@@ -134,6 +150,14 @@ ColumnLayout {
             }
         }
     }
+
+    onVisibleChanged: {
+        if(visible) {
+            graph_distance.draw()
+            graph_position.draw()
+        }
+    }
+
     /*
     Component.onCompleted: {
         console.log("DigiKey.positionHistory", DigiKey.positionHistory)

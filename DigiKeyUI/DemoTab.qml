@@ -5,6 +5,7 @@ import QtCharts 2.3
 import Position 1.0
 
 RowLayout {
+    id: demoTab
     width: 1920
     height: 1080
 
@@ -217,6 +218,14 @@ RowLayout {
                 graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.1 * graph.pixelsPerMeter, false, "")
                 graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.2 * graph.pixelsPerMeter, false, "")
                 graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.3 * graph.pixelsPerMeter, false, "")
+
+                if(swTrace.checked && DigiKey.positionHistory[0].length > 1) {
+                    for(var i=1; i<DigiKey.positionHistory[0].length; i++) {
+                        graph.drawLine(ctx,
+                                       DigiKey.positionHistory[0][i-1], DigiKey.positionHistory[1][i-1],
+                                       DigiKey.positionHistory[0][i], DigiKey.positionHistory[1][i])
+                    }
+                }
             }
 
             Connections {
@@ -227,20 +236,27 @@ RowLayout {
                 }
             }
 
-             MouseArea {
-                 anchors.fill: parent
-                 onWheel: {
-                     if (wheel.angleDelta.y > 0)
-                     {
-                         sldPpm.value += 5
-                     }
-                     else
-                     {
-                         sldPpm.value -= 5
-                     }
-                     wheel.accepted=true
-                 }
-             }
+            Connections {
+                target: swTrace
+                function onToggled() {
+                    canvas_key.requestPaint()
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onWheel: {
+                    if (wheel.angleDelta.y > 0)
+                    {
+                        sldPpm.value += 5
+                    }
+                    else
+                    {
+                        sldPpm.value -= 5
+                    }
+                    wheel.accepted=true
+                }
+            }
         }
 
         ColumnLayout {
@@ -589,6 +605,7 @@ RowLayout {
             Text {
                 id: receiverStatus
                 Layout.fillWidth: true
+                Layout.leftMargin: 15
                 text: qsTr("Waiting...")
                 wrapMode: Text.WordWrap
                 Connections {
@@ -598,14 +615,14 @@ RowLayout {
                         var msg = ""
                         for (var i = 0; i < anchors.length; i++) {
                             msg += "A" + (i + 1) + ": "
-                            msg += "RSSI = " + anchors[i].RSSI.toFixed(0) + "dBm, "
-                            msg += "SNR = " + anchors[i].SNR.toFixed(2) + "dB, "
-                            msg += "NEV = " + anchors[i].NEV + ", "
-                            msg += "NER = " + anchors[i].NER + ", "
-                            msg += "PER = " + anchors[i].PER.toFixed(2) + "%"
+                            msg += "RSSI = <font color='green'>" + anchors[i].RSSI.toFixed(0) + "dBm</font>, "
+                            msg += "SNR = <font color='green'>" + anchors[i].SNR.toFixed(2) + "dB</font>, "
+                            msg += "NEV = <font color='green'>" + anchors[i].NEV + "</font>, "
+                            msg += "NER = <font color='green'>" + anchors[i].NER + "</font>, "
+                            msg += "PER = <font color='green'>" + anchors[i].PER.toFixed(2) + "%</font>"
 
                             if (i < anchors.length - 1)
-                                msg += "\n"
+                                msg += "<br>"
                         }
 
                         receiverStatus.text = msg
@@ -642,6 +659,7 @@ RowLayout {
                 clip: true
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.leftMargin: 15
                 ScrollBar.vertical.policy: ScrollBar.AlwaysOn
 
                 Text {
@@ -661,22 +679,24 @@ RowLayout {
                             msg += "" + position.coordinate[0].toFixed(2) + ", "
                             msg += "" + position.coordinate[1].toFixed(2) + ", "
                             msg += "" + position.coordinate[2].toFixed(2)
-                            msg += "</font><br>"
-                            msg += "D1 = " + position.distance[0].toFixed(2) + ", "
-                            msg += "D2 = " + position.distance[1].toFixed(2) + ", "
-                            msg += "D3 = " + position.distance[2].toFixed(2) + ", "
-                            msg += "D4 = " + position.distance[3].toFixed(2) + "<br>"
-                            msg += "D5 = " + position.distance[4].toFixed(2) + ", "
-                            msg += "D6 = " + position.distance[5].toFixed(2) + ", "
-                            msg += "D7 = " + position.distance[6].toFixed(2) + ", "
-                            msg += "D8 = " + position.distance[7].toFixed(2)
+                            msg += "</font>"
                         } else if (status === -1) {
                             msg += "<font color='purple'>No new location received</font>"
                         } else if (status === -2) {
                             msg += "<font color='purple'>Can not calculate location</font>"
                         } else {
-                            msg += "Unknown data"
+                            msg += "Unknown location data"
                         }
+
+                        msg += "<br>"
+                        msg += "D1 = <font color='green'>" + position.distance[0].toFixed(2) + "</font>, "
+                        msg += "D2 = <font color='green'>" + position.distance[1].toFixed(2) + "</font>, "
+                        msg += "D3 = <font color='green'>" + position.distance[2].toFixed(2) + "</font>, "
+                        msg += "D4 = <font color='green'>" + position.distance[3].toFixed(2) + "</font><br>"
+                        msg += "D5 = <font color='green'>" + position.distance[4].toFixed(2) + "</font>, "
+                        msg += "D6 = <font color='green'>" + position.distance[5].toFixed(2) + "</font>, "
+                        msg += "D7 = <font color='green'>" + position.distance[6].toFixed(2) + "</font>, "
+                        msg += "D8 = <font color='green'>" + position.distance[7].toFixed(2) + "</font>"
 
                         positionLog.count += 1
                         positionLog.text += msg

@@ -1,6 +1,5 @@
 
 import math
-from random import random, randrange
 from configparser import ConfigParser
 from threading import Timer
 from PySide2 import QtCore
@@ -265,8 +264,8 @@ class DigiKey(QObject):
         self._params.updated.connect(self.on_params_updated)
 
         self._position = Position()
-        self._position_history = [[0.0 for _ in range(60)] for _ in range(len(self._position.coordinate))]
-        self._distance_history = [[0.0 for _ in range(60)] for _ in range(len(self._position.distance))]
+        self._position_history = [[] for _ in range(len(self._position.coordinate))]
+        self._distance_history = [[] for _ in range(len(self._position.distance))]
         self._anchors = [Anchor() for _ in range(8)]
 
         self._ui_range = ui_range()
@@ -310,46 +309,37 @@ class DigiKey(QObject):
 
     def update_position(self):
         if self._started:
-            '''
-            # fill fake data for UI dev
-            for i in range(len(self._position.coordinate)):
-                self._position.coordinate[i] += randrange(0, 2) * (1 if random() > 0.5 else -1)
-                self._position_history[i].pop(0)
-                self._position_history[i].append(self._position.coordinate[i])
-    
-            for i in range(len(self._position.distance)):
-                self._position.distance[i] = randrange(0, 5)
-                self._distance_history[i].pop(0)
-                self._distance_history[i].append(self._position.distance[i])
-    
-            for anchor in self._anchors:
-                anchor.RSSI = randrange(-100, 0)
-                anchor.SNR = randrange(10, 50)
-                anchor.NEV = randrange(0, 9999)
-                anchor.NER = randrange(0, 9999)
-                anchor.PER = random()
-            '''
-            ################
-            # USE UI_RANGE #
-            ################
-
             # get location
             position_status = 0
             try:
-                x, y = self._ui_range.getLocation()
-                #print("got location", x, y)
-                if x == 'nodata':
+                location_data = self._ui_range.getLocation()
+                #print("got location", location_data)
+
+                if location_data[0] == 'nodata':
                     position_status = -1
-                if x == 'wrong':
+                if location_data[1] == 'wrong':
                     position_status = -2
 
-                self._position.coordinate[0] = float(x)
-                self._position.coordinate[1] = float(y)
-                position_status = 1
+                try:
+                    self._position.coordinate[0] = float(location_data[0])
+                    self._position.coordinate[1] = float(location_data[1])
+                    position_status = 1
 
-                for i in range(len(self._position.coordinate)):
-                    self._position_history[i].pop(0)
-                    self._position_history[i].append(self._position.coordinate[i])
+                    for i in range(len(self._position.coordinate)):
+                        if len(self._position_history[i]) > 60:
+                            self._position_history[i].pop(0)
+                        self._position_history[i].append(self._position.coordinate[i])
+                except Exception as _:
+                    pass
+
+                try:
+                    self._position.distance = location_data[3:]
+                    for i in range(len(self._position.distance)):
+                        if len(self._distance_history[i]) > 60:
+                            self._distance_history[i].pop(0)
+                        self._distance_history[i].append(self._position.distance[i])
+                except Exception as _:
+                    pass
             except Exception as _:
                 pass
 
@@ -416,8 +406,8 @@ class DigiKey(QObject):
 
     @Slot()
     def request_clear_history(self):
-        self._position_history = [[0 for _ in range(60)] for _ in range(len(self._position.coordinate))]
-        self._distance_history = [[0 for _ in range(60)] for _ in range(len(self._position.distance))]
+        self._position_history = [[] for _ in range(len(self._position.coordinate))]
+        self._distance_history = [[] for _ in range(len(self._position.distance))]
 
 
 # main function, of course ^^

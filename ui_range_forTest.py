@@ -62,11 +62,12 @@ class ui_range:
                 time.sleep(0.2)
                 count = count + 1
                 if count > 50:
-                    return ["nodata", "nodata"]
+                    return ["nodata", "nodata",0, 1, 2,3,4,1,2,3,4]
+            time.sleep(0.2)
 
 
     def getAnchorPerformance(self, deviceId):
-        performance = [1, 2, 3, 4, 5]
+        performance = [1, 2, 3, 1, 2]
         performance[0] = performance[0] * deviceId
         performance[1] = performance[1] * deviceId
         performance[2] = performance[2] * deviceId
@@ -80,11 +81,25 @@ class ui_range:
         self.CanThread.daemon = True
         self.CanThread.start()
 
+    def stopRanging(self):
+        print("Stop Ranging")
+
     def RangDistTask(self):
-        location=[-5, 10]
+        location=[5,5,0,4,3,2,1,4,3,2,1 ]
         for inx in range(self.iteration):
-            location[0] = location[0] + 0.1 * inx
-            location[1] = location[1] - 0.1 * inx
+            location[0] = location[0] + 0.1 * inx   # x 
+            location[1] = location[1] - 0.1 * inx   # y
+            location[2] = 0                         # z
+
+            location[3] = 1 + 0.1 * inx #1
+            location[4] = 2 + 0.1 * inx
+            location[5] = 3 + 0.1 * inx
+            location[6] = 4 + 0.1 * inx
+            location[7] = 1 - 0.1 * inx#5
+            location[8] = 2 - 0.1 * inx
+            location[9] = 3 - 0.1 * inx
+            location[10] = 4 - 0.1 * inx
+
             self.locationQ.put(location)
             time.sleep(0.5)
 
