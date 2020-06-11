@@ -409,7 +409,11 @@ class DigiKey(QObject):
     @Slot()
     def request_stop(self):
         if self._started:
-            self._started = False
+            try:
+                self._ui_range.stopRanging()
+                self._started = False
+            except Exception as ex:
+                print(ex)
         else:
             popup = QMessageBox(QMessageBox.Warning, "Warning", "Ranging is not running")
             popup.exec_()
