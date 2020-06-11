@@ -1,4 +1,5 @@
 
+import math
 from random import random, randrange
 from configparser import ConfigParser
 from threading import Timer
@@ -59,11 +60,11 @@ class Anchor(QObject):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._rssi = 0
-        self._snr = 0
-        self._nev = 0
-        self._ner = 0
-        self._per = 0
+        self._rssi = 0.0
+        self._snr = 0.0
+        self._nev = 0.0
+        self._ner = 0.0
+        self._per = 0.0
     
     def get_rssi(self):
         return self._rssi
@@ -113,20 +114,20 @@ class Params(QObject):
         self._r = 3
         self._p = 0
         self._anchors = [
-            [0, 0, 0],
-            [2, 0, 0],
-            [2, 5, 0],
-            [0, 5, 0],
-            [0, 1.5, 0],
-            [2, 1.5, 0],
-            [2, 3.5, 0],
-            [0, 3.5, 0]
+            [0.0, 0.0, 0.0],
+            [2.0, 0.0, 0.0],
+            [2.0, 5.0, 0.0],
+            [0.0, 5.0, 0.0],
+            [0.0, 1.5, 0.0],
+            [2.0, 1.5, 0.0],
+            [2.0, 3.5, 0.0],
+            [0.0, 3.5, 0.0]
         ]
 
         self._configs = ConfigParser()
         try:
             self._configs.read("params.ini")
-            #self.read_config(self._configs)
+            self.read_config(self._configs)
         except Exception as ex:
             print(ex)
 
@@ -137,27 +138,39 @@ class Params(QObject):
         try:
             if 'PARAMS' in configs:
                 params = configs['PARAMS']
-                n = params.get('N', 10)
                 try:
-                    self.N = int(n)
+                    n = int(params.get('N', 10))
+                    if not math.isnan(n):
+                        self._n = n
+                    else:
+                        self._n = 10
                 except Exception as _:
                     pass
 
-                f = params.get('F', 6489600)
                 try:
-                    self.F = int(f)
+                    f = int(params.get('F', 6489600))
+                    if not math.isnan(f):
+                        self._f = f
+                    else:
+                        self._f = 6489600
                 except Exception as _:
                     pass
 
-                r = params.get('R', 3)
                 try:
-                    self.F = int(r)
+                    r = int(params.get('R', 3))
+                    if not math.isnan(r):
+                        self._r = r
+                    else:
+                        self._r = 3
                 except Exception as _:
                     pass
 
-                p = params.get('P', 0)
                 try:
-                    self.F = int(p)
+                    p = int(params.get('P', 0))
+                    if not math.isnan(p):
+                        self._p = p
+                    else:
+                        self._p = 0
                 except Exception as _:
                     pass
 
@@ -167,13 +180,17 @@ class Params(QObject):
                         b = a.split(',')
                         for j in range(3):
                             try:
-                                self._anchors[i][j] = float(b[j])
+                                c = float(b[j])
+                                if not math.isnan(c):
+                                    self._anchors[i][j] = c
+                                else:
+                                    self._anchors[i][j] = 0
                             except Exception as _:
                                 self._anchors[i][j] = 0
                     except Exception as _:
                         pass
-        except Exception as ex:
-            print(ex)
+        except Exception as _:
+            pass
 
     def get_n(self):
         return self._n
@@ -212,12 +229,8 @@ class Params(QObject):
 
     @Slot(int, int, str)
     def set_anchor(self, i, j, p):
-        try:
-            self._anchors[i][j] = float(p)
-            self.updated.emit()
-        except Exception as ex:
-            popup = QMessageBox(QMessageBox.Critical, "Critical", "Wrong format!!!\n" + str(ex))
-            popup.exec_()
+        self._anchors[i][j] = float(p)
+        self.updated.emit()
 
     def save(self):
         self._configs['PARAMS'] = {
@@ -252,12 +265,11 @@ class DigiKey(QObject):
         self._params.updated.connect(self.on_params_updated)
 
         self._position = Position()
-        self._position_history = [[0 for _ in range(60)] for _ in range(len(self._position.coordinate))]
-        self._distance_history = [[0 for _ in range(60)] for _ in range(len(self._position.distance))]
+        self._position_history = [[0.0 for _ in range(60)] for _ in range(len(self._position.coordinate))]
+        self._distance_history = [[0.0 for _ in range(60)] for _ in range(len(self._position.distance))]
         self._anchors = [Anchor() for _ in range(8)]
 
         self._ui_range = ui_range()
-        self._initialized = False
         self._started = False
 
         self._update_timer = RepeatTimer(1, self.update_ui)
@@ -325,6 +337,7 @@ class DigiKey(QObject):
             position_status = 0
             try:
                 x, y = self._ui_range.getLocation()
+                #print("got location", x, y)
                 if x == 'nodata':
                     position_status = -1
                 if x == 'wrong':
@@ -337,20 +350,21 @@ class DigiKey(QObject):
                 for i in range(len(self._position.coordinate)):
                     self._position_history[i].pop(0)
                     self._position_history[i].append(self._position.coordinate[i])
-            except Exception as ex:
-                print(ex)
+            except Exception as _:
+                pass
 
             # get performance
             for i in range(len(self._anchors)):
                 try:
                     performance = self._ui_range.getAnchorPerformance(i)
+                    #print("got anchor performance", performance)
                     self._anchors[i].RSSI = performance[0]
                     self._anchors[i].SNR = performance[1]
                     self._anchors[i].NEV = performance[2]
                     self._anchors[i].NER = performance[3]
                     self._anchors[i].PER = performance[4]
-                except Exception as ex:
-                    print(ex)
+                except Exception as _:
+                    pass
 
             # notify
             self.positionUpdated.emit(position_status)
@@ -363,9 +377,9 @@ class DigiKey(QObject):
     anchors = Property("QVariantList", fget=get_anchors, notify=anchorsUpdated)
 
     @Slot()
-    def request_init(self):
-        print("Init")
-        if not self._initialized:
+    def request_start(self):
+        print("Start")
+        if not self._started:
             try:
                 self._ui_range.setIteration(self._params.N)
                 anchors_location = []
@@ -374,30 +388,18 @@ class DigiKey(QObject):
                         anchors_location.append(x)
                 self._ui_range.setAnchorLocation(anchors_location)
                 self._ui_range.setCfg(configID=self._params.R, channel_frequency=self._params.F, nominal_tx_power=self._params.P)
-                self._initialized = True
             except Exception as ex:
                 popup = QMessageBox(QMessageBox.Critical, "Critical", "Init failed!!!\n" + str(ex))
                 popup.exec_()
-        else:
-            popup = QMessageBox(QMessageBox.Warning, "Warning", "Please stop ranging before you can init new configs")
-            popup.exec_()
 
-    @Slot()
-    def request_start(self):
-        print("Start")
-        if self._initialized:
-            if not self._started:
-                try:
-                    self._ui_range.startRanging()
-                    self._started = True
-                except Exception as ex:
-                    popup = QMessageBox(QMessageBox.Critical, "Critical", "Start failed!!!\n" + str(ex))
-                    popup.exec_()
-            else:
-                popup = QMessageBox(QMessageBox.Warning, "Warning", "Ranging is already started")
+            try:
+                self._ui_range.startRanging()
+                self._started = True
+            except Exception as ex:
+                popup = QMessageBox(QMessageBox.Critical, "Critical", "Start failed!!!\n" + str(ex))
                 popup.exec_()
         else:
-            popup = QMessageBox(QMessageBox.Warning, "Warning", "You must init first")
+            popup = QMessageBox(QMessageBox.Warning, "Warning", "Ranging is already started")
             popup.exec_()
 
     @Slot()
@@ -408,7 +410,6 @@ class DigiKey(QObject):
     def request_stop(self):
         if self._started:
             self._started = False
-            self._initialized = False
         else:
             popup = QMessageBox(QMessageBox.Warning, "Warning", "Ranging is not running")
             popup.exec_()
