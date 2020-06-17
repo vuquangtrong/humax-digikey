@@ -8,6 +8,7 @@ RowLayout {
     id: demoTab
     width: 1920
     height: 1080
+    spacing: 0
 
     Item {
         id: graph
@@ -68,7 +69,7 @@ RowLayout {
         Image {
             id: car
             source: "car.png"
-            visible: swCar.checked
+            opacity: sldCar.value / 100
 
             function relocate(w, h) {
                 var offset_x = parseFloat(a1_offset_x.text)
@@ -106,35 +107,56 @@ RowLayout {
                 var ctx = getContext("2d")
                 ctx.reset()
 
-                ctx.strokeStyle = "gray"
-                ctx.lineWidth = 1
-                ctx.setLineDash([5, 5])
                 ctx.globalAlpha = 0.5
 
                 // move the origin and rotate left
                 graph.translate(ctx, canvas_grid.width, canvas_grid.height)
 
                 // draw grid
-                var w = graph.getNewX(canvas_grid.width)
-                var h = graph.getNewY(canvas_grid.height)
+                var w = Math.floor(canvas_grid.width / graph.pixelsPerMeter)
+                var h = Math.floor(canvas_grid.height / graph.pixelsPerMeter)
+                var d = Math.max(w, h)
+                var i,j,s
 
-                for(var i=-w; i<=w; i++) {
-                    if(graph.pixelsPerMeter >= 50 || (graph.pixelsPerMeter < 50 && i%5 == 0)) {
-                        graph.drawLine(ctx, -h, i, h, i)
+                if(graph.pixelsPerMeter <= 20) {
+                    s = 1
+                } else if(graph.pixelsPerMeter <= 50) {
+                    s = 2
+                } else if(graph.pixelsPerMeter <= 100) {
+                    s = 5
+                }
+
+                for(i=-d; i<=d; i+=1) {
+                    ctx.save()
+                    ctx.strokeStyle = "green"
+                    ctx.lineWidth = 0.4
+                    graph.drawLine(ctx, -d, i, d, i)
+                    graph.drawLine(ctx, i, -d, i, d)
+                    ctx.restore()
+
+                    for(j=1; j<s; j++) {
+                        ctx.save()
+                        ctx.strokeStyle = "gray"
+                        ctx.lineWidth = 0.2
+                        graph.drawLine(ctx, -d, i+j*(1/s), d, i+j*(1/s))
+                        graph.drawLine(ctx, i+j*(1/s), -d, i+j*(1/s), d)
+                        ctx.restore()
                     }
                 }
 
-                for(var j=-h; j<=h; j++) {
-                    if(graph.pixelsPerMeter >= 50 || (graph.pixelsPerMeter < 50 && j%5 == 0)) {
-                        graph.drawLine(ctx, j, -w, j, w)
+                if(swRefAnchors.checked) {
+                    for(var u=-15; u<=15; u+=5) {
+                        for(var v=-15; v<=20; v+= 5) {
+                            graph.drawCircle(ctx, u, v, 2, true, "(" + u + ", " + v + ")")
+                        }
                     }
                 }
+            }
 
-                // draw refer anchors
-                for(var u=-15; u<=15; u+=5) {
-                    for(var v=-15; v<=20; v+= 5) {
-                        graph.drawCircle(ctx, u, v, 2, true, "(" + u + ", " + v + ")")
-                    }
+            Connections {
+                target: swRefAnchors
+                function onToggled() {
+                    canvas_grid.requestPaint()
                 }
             }
         }
@@ -146,8 +168,14 @@ RowLayout {
             onPaint: {
                 var ctx = getContext("2d")
                 ctx.reset()
+                ctx.font = "16px sans-serif"
 
-                ctx.fillStyle = "red"
+                if(swDebug.checked) {
+                    ctx.fillStyle = "black"
+                } else {
+                    ctx.fillStyle = "red"
+                }
+
                 ctx.lineWidth = 1
 
                 // move the origin and rotate left
@@ -155,13 +183,43 @@ RowLayout {
 
                 // draw anchors
                 for (var i = 0; i < DigiKey.params.anchors.length; i++) {
-                    graph.drawCircle(ctx, DigiKey.params.anchors[i][0], DigiKey.params.anchors[i][1], 5, true, "A" + (i + 1) + " (" + DigiKey.params.anchors[i][0] +", " +  DigiKey.params.anchors[i][1] + ")")
+                    var t = "A" + (i + 1)
+                    if(swDebug.checked)
+                    {
+                        t += ": " + DigiKey.position.distance[i].toFixed(2)
+                    }
+                    ctx.save()
+                    if(swDebug.checked) {
+                        if(DigiKey.anchors[i].active) {
+                            ctx.fillStyle = "red"
+                        } else {
+                            ctx.fillStyle = "black"
+                        }
+                    }
+                    graph.drawCircle(ctx, DigiKey.params.anchors[i][0], DigiKey.params.anchors[i][1], 5, true, t)
+                    ctx.restore()
                 }
             }
 
             Connections {
                 target: DigiKey
                 function onParamsUpdated() {
+                    canvas_anchors.requestPaint()
+                }
+            }
+
+            Connections {
+                target: DigiKey
+                function onPositionUpdated() {
+                    if(swDebug.checked) {
+                        canvas_anchors.requestPaint()
+                    }
+                }
+            }
+
+            Connections {
+                target: swDebug
+                function onToggled() {
                     canvas_anchors.requestPaint()
                 }
             }
@@ -176,6 +234,7 @@ RowLayout {
                 ctx.reset()
 
                 if(swRealKey.checked) {
+                    ctx.font = "16px sans-serif"
                     ctx.fillStyle = "orange"
                     ctx.lineWidth = 1
 
@@ -207,6 +266,7 @@ RowLayout {
                 var ctx = canvas_key.getContext("2d")
                 ctx.reset()
 
+                ctx.font = "16px sans-serif"
                 ctx.fillStyle = key_status === 1 ? "blue" : "purple"
                 ctx.strokeStyle = "blue"
                 ctx.lineWidth = 1
@@ -219,6 +279,8 @@ RowLayout {
                 graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.2 * graph.pixelsPerMeter, false, "")
                 graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.3 * graph.pixelsPerMeter, false, "")
 
+                ctx.save()
+                ctx.lineWidth = 2
                 if(swTrace.checked && DigiKey.positionHistory[0].length > 1) {
                     for(var i=1; i<DigiKey.positionHistory[0].length; i++) {
                         graph.drawLine(ctx,
@@ -226,6 +288,7 @@ RowLayout {
                                        DigiKey.positionHistory[0][i], DigiKey.positionHistory[1][i])
                     }
                 }
+                ctx.restore()
             }
 
             Connections {
@@ -288,7 +351,23 @@ RowLayout {
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Pixels per Meter")
                 }
-            } 
+            }
+
+            RowLayout {
+                spacing: 0
+                Layout.preferredHeight: 20
+
+                Text {
+                    Layout.preferredWidth: 20
+                    text: qsTr("Debug")
+                }
+
+                Switch {
+                    id: swDebug
+                    scale: 0.4
+                    checked: true
+                }
+            }
 
             RowLayout {
                 spacing: 0
@@ -301,7 +380,23 @@ RowLayout {
 
                 Switch {
                     id: swTrace
-                    scale: 0.6
+                    scale: 0.4
+                }
+            }
+
+            RowLayout {
+                spacing: 0
+                Layout.preferredHeight: 20
+
+                Text {
+                    Layout.preferredWidth: 20
+                    text: qsTr("Refers")
+                }
+
+                Switch {
+                    id: swRefAnchors
+                    scale: 0.4
+                    checked: true
                 }
             }
         }
@@ -312,16 +407,15 @@ RowLayout {
             RowLayout {
                 Layout.preferredHeight: 32
 
-                Text {
-                    Layout.preferredWidth: 20
-                    text: qsTr("Car")
-                }
-
-                Switch {
-                    id: swCar
-                    Layout.preferredWidth: 25
-                    scale: 0.6
-                    checked: true
+                Slider {
+                    id: sldCar
+                    Layout.preferredWidth: 50
+                    value: 50
+                    from: 10
+                    to: 100
+                    stepSize: 5
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Car's opacity")
                 }
 
                 Text {
@@ -424,11 +518,36 @@ RowLayout {
     }
 
     Rectangle {
+        Layout.preferredWidth: 20
+        Layout.fillHeight: true
+        color: "#E6E9ED"
+
+        Text {
+            anchors.fill: parent
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            rotation: -90
+            text: qsTr("Settings")
+            font.pointSize: 10
+            color: "blue"
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                settings.visible = !settings.visible
+            }
+        }
+    }
+
+    Rectangle {
+        id: settings
         Layout.preferredWidth: 426
         Layout.fillHeight: true
         radius: 10
         color: "#FCFCFC"
         border.color: "#687D91"
+        visible: false
 
         ColumnLayout {
             anchors.fill: parent
@@ -587,17 +706,27 @@ RowLayout {
 
                 Text {
                     anchors.fill: parent
-                    text: qsTr("Anchors")
+                    text: qsTr("Anchors") + ": " + (anchors.visible ? qsTr("Hide") : qsTr("Show"))
                     leftPadding: 5
                     verticalAlignment: Text.AlignVCenter
                     font.pointSize: 10
                     color: "blue"
                 }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        anchors.visible = !anchors.visible
+                    }
+                }
             }
 
             GridLayout {
+                id: anchors
                 rows: 4
                 columns: 2
+                visible: false
+
                 Repeater {
                     model: 8
                     PositionInput {
@@ -736,7 +865,7 @@ RowLayout {
                         msg += "<br>"
                         for (var i=0; i<position.distance.length; i++) {
                             var d = parseFloat(position.distance[i])
-                            msg += "D" + (i+1) + " = " + ((isNaN(d) || d < 0) ? "<font color='red'>failed" : "<font color='green'>" + position.distance[i].toFixed(2)) + "</font>, "
+                            msg += "D" + (i+1) + " = " + ((isNaN(d) || d < 0) ? "<font color='gray'>failed" : "<font color='green'>" + position.distance[i].toFixed(2)) + "</font>, "
                             if(i==3) msg += "<br>"
                         }
                         positionLog.count += 1

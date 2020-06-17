@@ -64,6 +64,7 @@ class Anchor(QObject):
         self._nev = 0.0
         self._ner = 0.0
         self._per = 0.0
+        self._active = False
     
     def get_rssi(self):
         return self._rssi
@@ -95,12 +96,18 @@ class Anchor(QObject):
     def set_per(self, value):
         self._per = value
 
+    def get_active(self):
+        return self._active
+
+    def set_active(self, value):
+        self._active = value
+
     RSSI = Property(float, fget=get_rssi, fset=set_rssi, notify=updated)    
     SNR = Property(float, fget=get_snr, fset=set_snr, notify=updated)
     NEV = Property(float, fget=get_nev, fset=set_nev, notify=updated)
     NER = Property(float, fget=get_ner, fset=set_ner, notify=updated)
     PER = Property(float, fget=get_per, fset=set_per, notify=updated)
-
+    active = Property(bool, fget=get_active, fset=set_active, notify=updated)
 
 # Params class save settings
 class Params(QObject):
@@ -314,43 +321,60 @@ class DigiKey(QObject):
             try:
                 location_data = self._ui_range.getLocation()
                 print("got location", location_data)
-
-                if location_data[0] == 'nodata':
-                    position_status = -1
-                if location_data[1] == 'wrong':
-                    position_status = -2
-
                 try:
-                    self._position.coordinate[0] = float(location_data[0])
-                    self._position.coordinate[1] = float(location_data[1])
-                    position_status = 1
-
-                    for i in range(len(self._position.coordinate)):
-                        if len(self._position_history[i]) > 60:
-                            self._position_history[i].pop(0)
-                        self._position_history[i].append(self._position.coordinate[i])
+                    for i in range(3):
+                        position_status = 0
+                        try:
+                            self._position.coordinate[i] = float(location_data[i])
+                            if len(self._position_history[i]) > 60:
+                                self._position_history[i].pop(0)
+                            self._position_history[i].append(self._position.coordinate[i])
+                            position_status = 1
+                        except Exception as ex:
+                            print(ex)
                 except Exception as ex:
                     print(ex)
 
+                if location_data[0] == 'nodata':
+                    position_status = -1
+                if location_data[0] == 'wrong':
+                    position_status = -2
+
+                # read distances
                 try:
-                    for i in range(len(self._position.distance)):
+                    for i in range(8):
                         d = location_data[3+i]
                         if d < 1000:
                             try:
                                 self._position.distance[i] = float(d)
-                            except Exception as _:
+                            except Exception as ex:
                                 self._position.distance[i] = -1
+                                print(ex)
                         else:
                             self._position.distance[i] = -1
 
-                    for i in range(len(self._position.distance)):
+                    for i in range(8):
                         if len(self._distance_history[i]) > 60:
                             self._distance_history[i].pop(0)
                         self._distance_history[i].append(self._position.distance[i])
                 except Exception as ex:
                     print(ex)
 
-            except Exception as _:
+                # read activated anchors
+                for anchor in self._anchors:
+                    anchor.active = False
+
+                try:
+                    for i in range(3):
+                        a = location_data[3+8+i]
+                        try:
+                            self._anchors[int(a)-1].active = True
+                        except Exception as ex:
+                            print(ex)
+                except Exception as ex:
+                    print(ex)
+
+            except Exception as ex:
                 print(ex)
 
             # get performance
@@ -430,11 +454,11 @@ def main():
     # OR select 'emulate terminal in output console' in Run settings
     # QtCore.qInstallMessageHandler(lambda mode, ctx, msg: print(msg))
 
-    # create backend object
-    digikey = DigiKey()
-
     # create QT Application
     app = QApplication()
+
+    # create backend object
+    digikey = DigiKey()
 
     # create QML engine
     qml_engine = QQmlApplicationEngine()
