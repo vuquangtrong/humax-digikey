@@ -16,4 +16,10 @@ TextField {
             text = 0
         }
     }
+
+    function getValue() {
+        var v = parseFloat(text)
+        if (isNaN(v)) v = 0
+        return v
+    }
 }

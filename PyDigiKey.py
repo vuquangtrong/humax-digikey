@@ -65,7 +65,7 @@ class Anchor(QObject):
         self._ner = 0.0
         self._per = 0.0
         self._active = False
-    
+
     def get_rssi(self):
         return self._rssi
     
@@ -102,12 +102,16 @@ class Anchor(QObject):
     def set_active(self, value):
         self._active = value
 
+    def get_visible(self):
+        return self._visible
+
     RSSI = Property(float, fget=get_rssi, fset=set_rssi, notify=updated)    
     SNR = Property(float, fget=get_snr, fset=set_snr, notify=updated)
     NEV = Property(float, fget=get_nev, fset=set_nev, notify=updated)
     NER = Property(float, fget=get_ner, fset=set_ner, notify=updated)
     PER = Property(float, fget=get_per, fset=set_per, notify=updated)
     active = Property(bool, fget=get_active, fset=set_active, notify=updated)
+
 
 # Params class save settings
 class Params(QObject):
@@ -120,15 +124,20 @@ class Params(QObject):
         self._r = 3
         self._p = 0
         self._anchors = [
-            [0.0, 0.0, 0.0],
-            [2.0, 0.0, 0.0],
-            [2.0, 5.0, 0.0],
-            [0.0, 5.0, 0.0],
-            [0.0, 1.5, 0.0],
-            [2.0, 1.5, 0.0],
-            [2.0, 3.5, 0.0],
-            [0.0, 3.5, 0.0]
+            [0.00, 2.52, 0.85, 1.00],
+            [1.75, 2.52, 0.85, 1.00],
+            [0.85, 1.40, 1.50, 1.00],
+            [0.00, 1.50, 0.88, 1.00],
+            [1.75, 1.50, 0.88, 1.00],
+            [0.00, 0.00, 0.00, 0.00],
+            [0.00, 0.00, 0.00, 0.00],
+            [0.00, 0.00, 0.00, 0.00]
         ]
+
+        self._car_w = 2.4
+        self._car_h = 5.5
+        self._car_off_x = 0.3
+        self._car_off_y = 0.1
 
         self._configs = ConfigParser()
         try:
@@ -180,11 +189,47 @@ class Params(QObject):
                 except Exception as _:
                     pass
 
+                try:
+                    car_w = int(params.get('car_w', 0))
+                    if not math.isnan(car_w):
+                        self._car_w = car_w
+                    else:
+                        self._car_w = 2.4
+                except Exception as _:
+                    pass
+
+                try:
+                    car_h = int(params.get('car_h', 0))
+                    if not math.isnan(car_h):
+                        self._car_h = car_h
+                    else:
+                        self._car_h = 5.5
+                except Exception as _:
+                    pass
+
+                try:
+                    car_off_x = int(params.get('car_off_x', 0))
+                    if not math.isnan(car_off_x):
+                        self._car_off_x = car_off_x
+                    else:
+                        self._car_off_x = 0.3
+                except Exception as _:
+                    pass
+
+                try:
+                    car_off_y = int(params.get('car_off_y', 0))
+                    if not math.isnan(car_off_y):
+                        self._car_off_y = car_off_y
+                    else:
+                        self._car_off_y = 0.1
+                except Exception as _:
+                    pass
+
                 for i in range(len(self._anchors)):
-                    a = params.get('anchor' + str(i+1), '0,0,0')
+                    a = params.get('anchor' + str(i+1), '0.00, 0.00, 0.00, 0.00')
                     try:
                         b = a.split(',')
-                        for j in range(3):
+                        for j in range(4):
                             try:
                                 c = float(b[j])
                                 if not math.isnan(c):
@@ -226,6 +271,34 @@ class Params(QObject):
         self._p = value
         self.updated.emit()
 
+    def get_car_w(self):
+        return self._car_w
+
+    def set_car_w(self, value):
+        self._car_w = value
+        self.updated.emit()
+
+    def get_car_h(self):
+        return self._car_h
+
+    def set_car_h(self, value):
+        self._car_h = value
+        self.updated.emit()
+
+    def get_car_off_x(self):
+        return self._car_off_x
+
+    def set_car_off_x(self, value):
+        self._car_off_x = value
+        self.updated.emit()
+
+    def get_car_off_y(self):
+        return self._car_off_y
+
+    def set_car_off_y(self, value):
+        self._car_off_x = value
+        self.updated.emit()
+
     def get_anchors(self):
         return self._anchors
 
@@ -243,11 +316,15 @@ class Params(QObject):
             'N': str(self._n),
             'F': str(self._f),
             'R': str(self._r),
-            'P': str(self._p)
+            'P': str(self._p),
+            'car_w': str(self._car_w),
+            'car_h': str(self._car_h),
+            'car_off_x': str(self._car_off_x),
+            'car_off_y': str(self._car_off_y)
         }
 
         for i in range(len(self._anchors)):
-            self._configs['PARAMS']['anchor'+str(i+1)] = f"{self._anchors[i][0]}, {self._anchors[i][1]}, {self._anchors[i][2]}"
+            self._configs['PARAMS']['anchor'+str(i+1)] = f"{self._anchors[i][0]}, {self._anchors[i][1]}, {self._anchors[i][2]}, {self._anchors[i][3]}"
 
         with open('params.ini', 'w') as configfile:
             self._configs.write(configfile)
@@ -256,6 +333,10 @@ class Params(QObject):
     F = Property(int, fget=get_f, fset=set_f, notify=updated)
     R = Property(int, fget=get_r, fset=set_r, notify=updated)
     P = Property(int, fget=get_p, fset=set_p, notify=updated)
+    CarWidth = Property(float, fget=get_car_w, fset=set_car_w, notify=updated)
+    CarHeight = Property(float, fget=get_car_h, fset=set_car_h, notify=updated)
+    CarOffsetX = Property(float, fget=get_car_off_x, fset=set_car_off_x, notify=updated)
+    CarOffsetY = Property(float, fget=get_car_off_y, fset=set_car_off_y, notify=updated)
     anchors = Property("QVariantList", fget=get_anchors, fset=set_anchors, notify=updated)
 
 
@@ -263,7 +344,12 @@ class Params(QObject):
 class DigiKey(QObject):
     paramsUpdated = Signal()
     positionUpdated = Signal(int)
+    position2Updated = Signal(int)
     anchorsUpdated = Signal()
+    zoneUpdated = Signal()
+    appStatusUpdated = Signal()
+
+    ITERATION_HISTORY = 200
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -273,12 +359,21 @@ class DigiKey(QObject):
         self._position = Position()
         self._position_history = [[] for _ in range(len(self._position.coordinate))]
         self._distance_history = [[] for _ in range(len(self._position.distance))]
+
+        self._position2 = Position()
+        self._position_history2 = [[] for _ in range(len(self._position.coordinate))]
+
         self._anchors = [Anchor() for _ in range(8)]
 
-        self._ui_range = ui_range()
-        self._started = False
+        self._activated_zone = 0
 
-        self._update_timer = RepeatTimer(1, self.update_ui)
+        self._started = False
+        self._debuggable = False
+        self._use_2nd_calc = False
+
+        self._ui_range = ui_range()
+
+        self._update_timer = RepeatTimer(0.3, self.update_ui)
         self._update_timer.start()
 
     def __del__(self):
@@ -287,29 +382,48 @@ class DigiKey(QObject):
     def deinit(self):
         self._update_timer.cancel()
 
+    def on_params_updated(self):
+        self._params.save()
+        self.paramsUpdated.emit()
+
     def get_params(self):
         return self._params
-
-    def set_params(self, value):
-        self._params = value
-
-    def on_params_updated(self):
-        self.paramsUpdated.emit()
 
     def get_position(self):
         return self._position
 
-    def set_position(self, value):
-        self._position = value
+    def get_position2(self):
+        return self._position2
 
     def get_position_history(self):
         return self._position_history
+
+    def get_position_history2(self):
+        return self._position_history2
 
     def get_distance_history(self):
         return self._distance_history
 
     def get_anchors(self):
         return self._anchors
+
+    def get_activated_zone(self):
+        return self._activated_zone
+
+    def get_started(self):
+        return self._started
+
+    def get_debuggable(self):
+        return self._debuggable
+
+    def set_debuggable(self, value):
+        self._debuggable = value
+
+    def get_use_2nd_calc(self):
+        return self._use_2nd_calc
+
+    def set_use_2nd_calc(self, value):
+        self._use_2nd_calc = value
 
     def update_ui(self):
         self.update_position()
@@ -318,6 +432,8 @@ class DigiKey(QObject):
         if self._started:
             # get location
             position_status = 0
+            position_status2 = 0
+
             try:
                 location_data = self._ui_range.getLocation()
                 print("got location", location_data)
@@ -326,12 +442,13 @@ class DigiKey(QObject):
                         position_status = 0
                         try:
                             self._position.coordinate[i] = float(location_data[i])
-                            if len(self._position_history[i]) > 60:
+                            if len(self._position_history[i]) > self.ITERATION_HISTORY:
                                 self._position_history[i].pop(0)
                             self._position_history[i].append(self._position.coordinate[i])
                             position_status = 1
                         except Exception as ex:
                             print(ex)
+                    print('added position', len(self._position_history[0]), 'to history')
                 except Exception as ex:
                     print(ex)
 
@@ -354,7 +471,7 @@ class DigiKey(QObject):
                             self._position.distance[i] = -1
 
                     for i in range(8):
-                        if len(self._distance_history[i]) > 60:
+                        if len(self._distance_history[i]) > self.ITERATION_HISTORY:
                             self._distance_history[i].pop(0)
                         self._distance_history[i].append(self._position.distance[i])
                 except Exception as ex:
@@ -373,32 +490,78 @@ class DigiKey(QObject):
                             print(ex)
                 except Exception as ex:
                     print(ex)
-
             except Exception as ex:
                 print(ex)
 
-            # get performance
-            for i in range(len(self._anchors)):
+            if self._use_2nd_calc:
                 try:
-                    performance = self._ui_range.getAnchorPerformance(i)
-                    print("got anchor performance", performance)
-                    self._anchors[i].RSSI = float(performance[0])
-                    self._anchors[i].SNR = float(performance[1])
-                    self._anchors[i].NEV = float(performance[2])
-                    self._anchors[i].NER = float(performance[3])
-                    self._anchors[i].PER = float(performance[4])
+                    location_data2 = self._ui_range.getLocation_addition()
+                    print("got additional location", location_data2)
+                    try:
+                        for i in range(3):
+                            position_status2 = 0
+                            try:
+                                self._position2.coordinate[i] = float(location_data2[i])
+                                if len(self._position_history2[i]) > self.ITERATION_HISTORY:
+                                    self._position_history2[i].pop(0)
+                                self._position_history2[i].append(self._position2.coordinate[i])
+                                position_status2 = 1
+                            except Exception as ex:
+                                print(ex)
+                    except Exception as ex:
+                        print(ex)
+
+                    if location_data2[0] == 'nodata':
+                        position_status2 = -1
+                    if location_data2[0] == 'wrong':
+                        position_status2 = -2
                 except Exception as ex:
                     print(ex)
 
+            if self._debuggable:
+                # get performance
+                for i in range(len(self._anchors)):
+                    try:
+                        performance = self._ui_range.getAnchorPerformance(i)
+                        print("got anchor performance", performance)
+                        self._anchors[i].RSSI = float(performance[0])
+                        self._anchors[i].SNR = float(performance[1])
+                        self._anchors[i].NEV = float(performance[2])
+                        self._anchors[i].NER = float(performance[3])
+                        self._anchors[i].PER = float(performance[4])
+                    except Exception as ex:
+                        print(ex)
+
+            # get activated zone
+            self._activated_zone = 0
+            try:
+                self._activated_zone = int(self._ui_range.detectZone())
+                print("got activated zone", self._activated_zone)
+            except Exception as ex:
+                print(ex)
+
             # notify
             self.positionUpdated.emit(position_status)
+            self.position2Updated.emit(position_status2)
             self.anchorsUpdated.emit()
+            self.zoneUpdated.emit()
 
-    params = Property(Params, fget=get_params, fset=set_params, notify=paramsUpdated)
-    position = Property(Position, fget=get_position, fset=set_position, notify=positionUpdated)
+    params = Property(Params, fget=get_params, notify=paramsUpdated)
+
+    position = Property(Position, fget=get_position, notify=positionUpdated)
     positionHistory = Property("QVariantList", fget=get_position_history, notify=positionUpdated)
     distanceHistory = Property("QVariantList", fget=get_distance_history, notify=positionUpdated)
+
+    position2 = Property(Position, fget=get_position2, notify=position2Updated)
+    positionHistory2 = Property("QVariantList", fget=get_position_history2, notify=position2Updated)
+
     anchors = Property("QVariantList", fget=get_anchors, notify=anchorsUpdated)
+
+    activatedZone = Property(int, fget=get_activated_zone, notify=zoneUpdated)
+
+    started = Property(bool, fget=get_started, notify=appStatusUpdated)
+    debuggable = Property(bool, fget=get_debuggable, fset=set_debuggable, notify=appStatusUpdated)
+    use2ndCalc = Property(bool, fget=get_use_2nd_calc, fset=set_use_2nd_calc, notify=appStatusUpdated)
 
     @Slot()
     def request_start(self):
@@ -419,6 +582,7 @@ class DigiKey(QObject):
             try:
                 self._ui_range.startRanging()
                 self._started = True
+                self.request_clear_history(inited=False)
             except Exception as ex:
                 popup = QMessageBox(QMessageBox.Critical, "Critical", "Start failed!!!\n" + str(ex))
                 popup.exec_()
@@ -443,9 +607,15 @@ class DigiKey(QObject):
             popup.exec_()
 
     @Slot()
-    def request_clear_history(self):
+    def request_clear_history(self, inited=True):
         self._position_history = [[] for _ in range(len(self._position.coordinate))]
         self._distance_history = [[] for _ in range(len(self._position.distance))]
+        if inited:
+            self.positionUpdated.emit(0)
+
+        self._position_history2 = [[] for _ in range(len(self._position.coordinate))]
+        if inited:
+            self.position2Updated.emit(0)
 
 
 # main function, of course ^^

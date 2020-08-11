@@ -6,8 +6,6 @@ import random
 
 class ui_range:
     def __init__(self):
-        self.CanThread = threading.Thread(target=self.RangDistTask)
-        self.CanThread.daemon = True
         self.iteration = 10
         self.numOfAnchor = 8
         self.configID = 4
@@ -61,6 +59,9 @@ class ui_range:
                     return ["nodata", "nodata", 0, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3]
             time.sleep(0.2)
 
+    def getLocation_addition(self):
+        return [random.random(), random.random(), 0]
+
     def getAnchorPerformance(self, deviceId):
         performance = [1, 2, 3, 1, 2]
         performance[0] = performance[0] * deviceId
@@ -72,16 +73,23 @@ class ui_range:
 
     def startRanging(self):
         print("Start Ranging")
+        self.CanThread = threading.Thread(target=self.RangDistTask)
+        self.CanThread.daemon = True
         self.CanThread.start()
 
     def stopRanging(self):
         print("Stop Ranging")
 
+    def getRandom(self):
+        return random.random() * (1 if random.random() > 0.5 else -1)
+
     def RangDistTask(self):
+        with self.locationQ.mutex:
+            self.locationQ.queue.clear()
         location = [5, 5, 0, 4, 3, 2, 1, 4, 3, 2, 1, 0, 0, 0]
         for inx in range(self.iteration):
-            location[0] = location[0] + 0.1 * inx  # x
-            location[1] = location[1] - 0.1 * inx  # y
+            location[0] = location[0] - 0.1 * random.random() * inx  # x
+            location[1] = location[1] - 0.1 * random.random() * inx  # y
             location[2] = 0  # z
 
             location[3] = 1 + 0.1 * inx  # 1
@@ -105,4 +113,5 @@ class ui_range:
             self.locationQ.put(location)
             time.sleep(0.5)
 
-
+    def detectZone(self):
+        return  random.randint(0,8) 

@@ -10,6 +10,8 @@ Window {
     width: 1920
     height: 1080
 
+    //visibility: Window.FullScreen
+
     TabBar {
         id: tabBar
         width: parent.width

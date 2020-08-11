@@ -1,7 +1,6 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
-import QtCharts 2.3
 import Position 1.0
 
 RowLayout {
@@ -15,55 +14,69 @@ RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        property int pixelsPerMeter: sldPpm.value
-
-        function m2px(x) {
-            return x * pixelsPerMeter
+        function sx(x) {
+            return x
         }
 
-        function getNewX(w) {
-            return m2px(Math.floor(w / pixelsPerMeter / 2) - 1)
+        function sy(y) {
+            return -y
         }
 
-        function getNewY(h) {
-            return m2px(Math.floor(h / pixelsPerMeter / 2) + 3)
+        function px(x) {
+            return sx(x) * sldPpm.value
         }
 
-        function translate(context, w, h) {
-            var nx = getNewX(w)
-            var ny = getNewY(h)
-            context.translate(nx, ny)
-            context.rotate(-Math.PI / 2)
+        function py(y) {
+            return sy(y) * sldPpm.value
         }
 
-        function drawLine(context, x0, y0, x1, y1) {
-            context.beginPath()
-            context.moveTo(m2px(y0), m2px(x0))
-            context.lineTo(m2px(y1), m2px(x1))
-            context.stroke()
+        function translate(c=null) {
+            var nx = (Math.floor(width / sldPpm.value / 2)) * sldPpm.value
+            var ny = (Math.floor(height / sldPpm.value / 2) + 3) * sldPpm.value
+
+            /*
+            console.log("graph.translate()",
+                ", width = ", width,
+                ", height = ", height,
+                ", nx = ", nx,
+                ", ny = ", ny)
+            */
+
+            if(c)
+                c.translate(nx, ny)
+
+            return {x: nx, y: ny}
         }
 
-        function drawCircle(context, x, y, r, filled, text) {
-            context.beginPath()
-            context.arc(m2px(y), m2px(x), r, 0, 2 * Math.PI)
-            if (filled) {
-                context.fill()
-            } else {
-                context.stroke()
+        function line(c, x0, y0, x1, y1) {
+            c.moveTo(px(x0), py(y0))
+            c.lineTo(px(x1), py(y1))
+        }
+
+        function rect(c, x0, y0, x1, y1) {
+            c.rect(px(x0), py(y0), px(x1), py(y1))
+        }
+
+        function arc(c, x, y, r, sa, ea) {
+            c.arc(px(x), py(y), r, sa, ea)
+        }
+
+        function text(c, x, y, t, a='left', dx=0, dy=0, gl=false) {
+            c.save()
+
+            if(gl) {
+                c.lineWidth = 0.8
+                c.strokeStyle = 'purple'
+                c.beginPath()
+                c.moveTo(px(x), py(y))
+                c.lineTo(px(x)+sx(dx), py(y)+sy(dy))
+                c.stroke()
             }
 
-            if (text !== "") {
-                context.save()
+            c.textAlign = a
+            c.fillText(t, px(x)+sx(dx), py(y)+sy(dy))
 
-                // move origin and rotate
-                context.translate(m2px(y), m2px(x))
-                context.rotate(Math.PI / 2)
-
-                // draw text
-                context.fillText(text, x + 5, y + 15)
-
-                context.restore()
-            }
+            c.restore()
         }
 
         Image {
@@ -71,29 +84,28 @@ RowLayout {
             source: "car.png"
             opacity: sldCar.value / 100
 
-            function relocate(w, h) {
-                var offset_x = parseFloat(a1_offset_x.text)
-                if (isNaN(offset_x)) offset_x = 0.5
+            function relocate() {
+                var offset_x = a1_offset_x.getValue()
+                var offset_y = a1_offset_y.getValue()
+                var real_width = car_width.getValue()
+                var real_height = car_height.getValue()
+                var new_xy = graph.translate()
 
-                var offset_y = parseFloat(a1_offset_y.text)
-                if (isNaN(offset_y)) offset_y = 0.5
+                car.width = Math.abs(graph.px(real_width))
+                car.height = Math.abs(graph.py(real_height))
 
-                var real_width = parseFloat(car_width.text)
-                if (isNaN(real_width)) real_width = 2
+                console.log("car.relocate()",
+                    ", offset_x = ", offset_x,
+                    ", offset_y = ", offset_y,
+                    ", real_width = ", real_width,
+                    ", real_height = ", real_height,
+                    ", nx = ", new_xy.x,
+                    ", ny = ", new_xy.y,
+                    ", car.width = ", car.width,
+                    ", car.height = ", car.height)
 
-                var real_height = parseFloat(car_height.text)
-                if (isNaN(real_height)) real_height = 5
-
-                car.width = graph.m2px(real_width - offset_x)
-                car.height = graph.m2px(real_height - offset_y)
-
-                // move to origin
-                var nx = graph.getNewX(w)
-                var ny = graph.getNewY(h)
-
-                // relocate
-                car.x = nx + graph.m2px(offset_x)
-                car.y = ny - car.height - graph.m2px(offset_y)
+                car.x = new_xy.x - graph.px(offset_x)
+                car.y = new_xy.y - car.height - graph.py(offset_y)
             }
         }
 
@@ -102,62 +114,227 @@ RowLayout {
             anchors.fill: parent
 
             onPaint: {
-                car.relocate(canvas_grid.width, canvas_grid.height)
+                console.log("canvas_grid.onPaint()",
+            		", sldPpm.value = ", sldPpm.value,
+            		", swRefAnchors.checked = ", swRefAnchors.checked)
+
+                if(!graph.visible) {
+                    console.log("canvas_grid: !graph.visible -> skip onPaint()")
+                    return
+                }
+
+                car.relocate()
 
                 var ctx = getContext("2d")
                 ctx.reset()
 
+                graph.translate(ctx)
                 ctx.globalAlpha = 0.5
 
-                // move the origin and rotate left
-                graph.translate(ctx, canvas_grid.width, canvas_grid.height)
-
-                // draw grid
-                var w = Math.floor(canvas_grid.width / graph.pixelsPerMeter)
-                var h = Math.floor(canvas_grid.height / graph.pixelsPerMeter)
+                var w = Math.floor(graph.width / sldPpm.value)
+                var h = Math.floor(graph.height / sldPpm.value)
                 var d = Math.max(w, h)
-                var i,j,s
+                var i = 0, j = 0, s = 0
 
-                if(graph.pixelsPerMeter <= 20) {
+                if(sldPpm.value <= 20) {
                     s = 1
-                } else if(graph.pixelsPerMeter <= 50) {
+                } else if(sldPpm.value <= 50) {
                     s = 2
-                } else if(graph.pixelsPerMeter <= 100) {
+                } else if(sldPpm.value <= 100) {
                     s = 5
+                } else {
+                    s = 10
                 }
 
-                for(i=-d; i<=d; i+=1) {
-                    ctx.save()
-                    ctx.strokeStyle = "green"
-                    ctx.lineWidth = 0.4
-                    graph.drawLine(ctx, -d, i, d, i)
-                    graph.drawLine(ctx, i, -d, i, d)
-                    ctx.restore()
+                // draw major lines
+                ctx.strokeStyle = "green"
+                ctx.lineWidth = 0.4
 
+                ctx.beginPath()
+                for(i=-d; i<=d; i+=1) {
+                    graph.line(ctx, i, d, i, -d)
+                    graph.line(ctx, d, i, -d, i)
+                }
+                ctx.stroke()
+
+                // draw minor lines
+                ctx.strokeStyle = "gray"
+                ctx.lineWidth = 0.2
+
+                ctx.beginPath()
+                for(i=-d; i<=d; i+=1) {
                     for(j=1; j<s; j++) {
-                        ctx.save()
-                        ctx.strokeStyle = "gray"
-                        ctx.lineWidth = 0.2
-                        graph.drawLine(ctx, -d, i+j*(1/s), d, i+j*(1/s))
-                        graph.drawLine(ctx, i+j*(1/s), -d, i+j*(1/s), d)
-                        ctx.restore()
+                        graph.line(ctx, i+j*(1/s), d, i+j*(1/s), -d)
+                        graph.line(ctx, d, i+j*(1/s), -d, i+j*(1/s))
                     }
                 }
+                ctx.stroke()
 
+                // draw reference points
                 if(swRefAnchors.checked) {
                     for(var u=-15; u<=15; u+=5) {
-                        for(var v=-15; v<=20; v+= 5) {
-                            graph.drawCircle(ctx, u, v, 2, true, "(" + u + ", " + v + ")")
+                        for(var v=-15; v<=20; v+=5) {
+                            ctx.beginPath()
+                            graph.arc(ctx, u, v, 2, 0, 2*Math.PI)
+                            ctx.fill()
+                            graph.text(ctx, u, v, "(" + u + ", " + v + ")", 'right', -5, -15)
                         }
                     }
                 }
+
+                // draw zone boudaries
+                var offset_x = a1_offset_x.getValue()
+                var offset_y = a1_offset_y.getValue()
+                var real_width = car_width.getValue()
+                var real_height = car_height.getValue()
+                var w = real_width-2*offset_x
+                var h = real_height-2*offset_y
+
+                ctx.strokeStyle = 'darkred'
+                ctx.lineWidth = 1
+
+                ctx.beginPath()
+
+                var l = 2*Math.sin(Math.PI/4)
+                graph.rect(ctx, 0, 0, w, h)
+                graph.line(ctx, 0, 0, -l, -l)
+                graph.line(ctx, w, 0, w+l, -l)
+                graph.line(ctx, 0, h, -l, h+l)
+                graph.line(ctx, w, h, w+l, h+l)
+
+                for(var i=1; i<=2; i++) {
+                    graph.line(ctx, -i, 0, -i, h)
+                    graph.arc(ctx, 0, h, graph.px(i), Math.PI, 3*Math.PI/2)
+
+                    graph.line(ctx, 0, h+i, w, h+i)
+                    graph.arc(ctx, w, h, graph.px(i), 3*Math.PI/2, 0)
+                    
+                    graph.line(ctx, w+i, h, w+i, 0)
+                    graph.arc(ctx, w, 0, graph.px(i), 0, Math.PI/2)
+
+                    graph.line(ctx, w, -i, 0, -i)
+                    graph.arc(ctx, 0, 0, graph.px(i), Math.PI/2, Math.PI)                
+                }
+
+                ctx.stroke()
+
+                canvas_zone.requestPaint()
+            }
+        }
+
+        Canvas {
+            id: canvas_zone
+            anchors.fill: parent
+
+            property int activatedZone: -1
+            property var innerColor: 'green'
+            property var outterColor: 'yellow'
+
+            function drawInCar(c, w, h) {
+                c.save()
+                c.fillStyle = innerColor
+                c.beginPath()
+                graph.rect(c, 0, 0, w, h)
+                c.fill()
+                c.restore()
             }
 
-            Connections {
-                target: swRefAnchors
-                function onToggled() {
-                    canvas_grid.requestPaint()
+            function drawRear(c,w,h,z) {
+                c.save()
+                c.fillStyle = (z==5 ? outterColor : innerColor)
+                c.beginPath()
+                graph.line(c, 0, 0, w, 0)
+                graph.arc(c, w, 0, graph.px(z==5 ? 2 : 1), Math.PI/4, Math.PI/2)
+                graph.arc(c, 0, 0, graph.px(z==5 ? 2 : 1), Math.PI/2, 3*Math.PI/4)
+                c.fill()
+                c.restore()
+            }
+
+            function drawRight(c,w,h,z) {
+                c.save()
+                c.fillStyle = (z==7 ? outterColor : innerColor)
+                c.beginPath()
+                graph.line(c, w, 0, w, h)
+                graph.arc(c, w, h, graph.px(z==7 ? 2 : 1), 7*Math.PI/4, 0)
+                graph.arc(c, w, 0, graph.px(z==7 ? 2 : 1), 0, Math.PI/4)
+                c.fill()
+                c.restore()
+            }
+
+            function drawFront(c,w,h,z) {
+                c.save()
+                c.fillStyle = (z==1 ? outterColor : innerColor)
+                c.beginPath()
+                graph.line(c, w, h, 0, h)
+                graph.arc(c, 0, h, graph.px(z==1 ? 2 : 1), 5*Math.PI/4, 3*Math.PI/2)
+                graph.arc(c, w, h, graph.px(z==1 ? 2 : 1), 3*Math.PI/2, 7*Math.PI/4)
+                c.fill()
+                c.restore()
+            }
+
+            function drawLeft(c,w,h,z) {
+                c.save()
+                c.fillStyle = (z==3 ? outterColor : innerColor)
+                c.beginPath()
+                graph.line(c, 0, h, 0, 0)
+                graph.arc(c, 0, 0, graph.px(z==3 ? 2 : 1), 3*Math.PI/4, Math.PI)
+                graph.arc(c, 0, h, graph.px(z==3 ? 2 : 1), Math.PI, 5*Math.PI/4)
+                c.fill()
+                c.restore()
+            }
+
+            onPaint: {
+                console.log("canvas_zone.onPaint()",
+                    ", activatedZone = ", activatedZone)
+
+                if(!graph.visible) {
+                    console.log("canvas_zone: !graph.visible -> skip onPaint()")
+                    return
                 }
+
+                var ctx = getContext("2d")
+                ctx.reset()
+
+                graph.translate(ctx)
+                ctx.globalAlpha = 0.3
+
+                // draw zones
+                var offset_x = a1_offset_x.getValue()
+                var offset_y = a1_offset_y.getValue()
+                var real_width = car_width.getValue()
+                var real_height = car_height.getValue()
+                var w = real_width-2*offset_x
+                var h = real_height-2*offset_y
+
+                switch(activatedZone) {
+                    case 0:
+                        drawInCar(ctx, w, h)
+                        break
+                    case 1:
+                        drawFront(ctx, w, h, 2)
+                        break
+                    case 2:
+                        drawFront(ctx, w, h, 1)
+                        break
+                    case 3:
+                        drawLeft(ctx, w, h, 4)
+                        break
+                    case 4:
+                        drawLeft(ctx, w, h, 3)
+                        break
+                    case 5:
+                        drawRear(ctx, w, h, 6)
+                        break
+                    case 6:
+                        drawRear(ctx, w, h, 5)
+                        break
+                    case 7:
+                        drawRight(ctx, w, h, 8)
+                        break
+                    case 8:
+                        drawRight(ctx, w, h, 7)
+                        break
+                }  
             }
         }
 
@@ -166,62 +343,68 @@ RowLayout {
             anchors.fill: parent
 
             onPaint: {
-                var ctx = getContext("2d")
-                ctx.reset()
-                ctx.font = "16px sans-serif"
+                console.log("canvas_anchors.onPaint()", 
+                    ", sldPpm.value = ", sldPpm.value, 
+                    ", swDebug.checked = ", swDebug.checked)
 
-                if(swDebug.checked) {
-                    ctx.fillStyle = "black"
-                } else {
-                    ctx.fillStyle = "red"
+                if(!graph.visible) {
+                    console.log("canvas_anchors: !graph.visible -> skip onPaint()")
+                    return
                 }
 
-                ctx.lineWidth = 1
+                var ctx = getContext("2d")
+                ctx.reset()
 
-                // move the origin and rotate left
-                graph.translate(ctx, canvas_anchors.width, canvas_anchors.height)
+                graph.translate(ctx)
+                ctx.fillStyle = "darkblue"
+
+                var tpx = 5
+                var lpx = 15
+
+                if(sldPpm.value <= 20) {
+                    ctx.font = "10px sans-serif"
+                    tpx = 6
+                    lpx = 6
+                } else if(sldPpm.value <= 50) {
+                    ctx.font = "14px sans-serif"
+                    tpx = 10
+                    lpx = 10
+                } else if(sldPpm.value <= 100) {
+                    ctx.font = "18px sans-serif"
+                    tpx = 15
+                    lpx = 15
+                } else {
+                    ctx.font = "18px sans-serif"
+                    tpx = 15
+                    lpx = 15
+                }
 
                 // draw anchors
                 for (var i = 0; i < DigiKey.params.anchors.length; i++) {
-                    var t = "A" + (i + 1)
-                    if(swDebug.checked)
-                    {
-                        t += ": " + DigiKey.position.distance[i].toFixed(2)
-                    }
-                    ctx.save()
-                    if(swDebug.checked) {
-                        if(DigiKey.anchors[i].active) {
-                            ctx.fillStyle = "red"
-                        } else {
-                            ctx.fillStyle = "black"
+                    if(parseFloat(DigiKey.params.anchors[i][3])==1.0) {
+                        var a = "A" + (i + 1)
+                        ctx.save()
+
+                        if(swDebug.checked) {
+                            if(DigiKey.anchors[i].active) {
+                                ctx.fillStyle = "red"
+                            }
                         }
-                    }
-                    graph.drawCircle(ctx, DigiKey.params.anchors[i][0], DigiKey.params.anchors[i][1], 5, true, t)
-                    ctx.restore()
-                }
-            }
+                        ctx.beginPath()
+                        graph.arc(ctx, DigiKey.params.anchors[i][0], DigiKey.params.anchors[i][1], 5, 0, 2*Math.PI)
+                        ctx.fill()
+                        graph.text(ctx, DigiKey.params.anchors[i][0], DigiKey.params.anchors[i][1], a, 'left', 5, -tpx)
 
-            Connections {
-                target: DigiKey
-                function onParamsUpdated() {
-                    canvas_anchors.requestPaint()
-                }
-            }
+                        if(swDebug.checked)
+                        {
+                            var t = DigiKey.position.distance[i].toFixed(2)
+                            graph.text(ctx, DigiKey.params.anchors[i][0], DigiKey.params.anchors[i][1], t, 'left', 5, -(tpx+lpx))
+                        }
 
-            Connections {
-                target: DigiKey
-                function onPositionUpdated() {
-                    if(swDebug.checked) {
-                        canvas_anchors.requestPaint()
+                        ctx.restore()
                     }
                 }
-            }
-
-            Connections {
-                target: swDebug
-                function onToggled() {
-                    canvas_anchors.requestPaint()
-                }
+                
             }
         }
 
@@ -230,95 +413,226 @@ RowLayout {
             anchors.fill: parent
 
             onPaint: {
-                var ctx = canvas_real_key.getContext("2d")
+                console.log("canvas_real_key.onPaint()", 
+                    ", swRealKey.checked = ", swRealKey.checked)
+
+                if(!graph.visible) {
+                    console.log("canvas_real_key: !graph.visible -> skip onPaint()")
+                    return
+                }
+
+                var ctx = getContext("2d")
                 ctx.reset()
 
-                if(swRealKey.checked) {
-                    ctx.font = "16px sans-serif"
-                    ctx.fillStyle = "orange"
-                    ctx.lineWidth = 1
-
-                    // move the origin and rotate left
-                    graph.translate(ctx, canvas_key.width, canvas_key.height)
-
-                    graph.drawCircle(ctx, parseFloat(realKey.px.text), parseFloat(realKey.py.text), 8, true, "Real Position (" + parseFloat(realKey.px.text).toFixed(2) + ", " + parseFloat(realKey.py.text).toFixed(2) + ")")
+                if(!swRealKey.checked) {
+                    console.log("canvas_real_key -> skip onPaint()")
+                    return
                 }
-            }
 
-            Connections {
-                target: swRealKey
-                function onToggled() {
-                    canvas_real_key.requestPaint()
-                }
+                graph.translate(ctx)
+                ctx.fillStyle = "darkred"
+
+                ctx.beginPath()
+                graph.arc(ctx, parseFloat(realKey.px.text), parseFloat(realKey.py.text), 5, 0, 2*Math.PI)
+                ctx.fill()
             }
         }
 
         Canvas {
             id: canvas_key
             anchors.fill: parent
+            visible: sw1stCalc.checked
 
             property int key_status: 0
 
             onPaint: {
-                if(key_status == 0) {
+                console.log("canvas_key.onPaint()", 
+                    ", sw1stCalc.checked = ", sw1stCalc.checked, 
+                    ", key_status = ", key_status)
+
+                if(!graph.visible) {
+                    console.log("canvas_key: !graph.visible -> skip onPaint()")
                     return
                 }
-                var ctx = canvas_key.getContext("2d")
+
+                var ctx = getContext("2d")
                 ctx.reset()
 
+                if(!sw1stCalc.checked || key_status == 0) {
+                    console.log("canvas_key -> skip onPaint()")
+                    return
+                }
+
+                graph.translate(ctx)
                 ctx.font = "16px sans-serif"
-                ctx.fillStyle = key_status === 1 ? "blue" : "purple"
                 ctx.strokeStyle = "blue"
-                ctx.lineWidth = 1
+                ctx.fillStyle = "blue"
 
-                // move the origin and rotate left
-                graph.translate(ctx, canvas_key.width, canvas_key.height)
+                //console.log(DigiKey.positionHistory)
+                if(swDebug.checked && swTrace.checked && DigiKey.positionHistory[0].length > 1) {
+                    ctx.lineWidth = 1.5
 
-                graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5, true, "Calc. Position (" + DigiKey.position.coordinate[0].toFixed(2) + ", " +  DigiKey.position.coordinate[1].toFixed(2) + ")")
-                graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.1 * graph.pixelsPerMeter, false, "")
-                graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.2 * graph.pixelsPerMeter, false, "")
-                graph.drawCircle(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5 + 0.3 * graph.pixelsPerMeter, false, "")
+                    // first point
+                    ctx.beginPath()
+                    graph.arc(ctx, DigiKey.positionHistory[0][0], DigiKey.positionHistory[1][0], 2, 0, 2*Math.PI)
+                    ctx.fill()
+                    graph.text(ctx, DigiKey.positionHistory[0][0], DigiKey.positionHistory[1][0], "1", 'left', 5, -10)
 
-                ctx.save()
-                ctx.lineWidth = 2
-                if(swTrace.checked && DigiKey.positionHistory[0].length > 1) {
+                    // next points
                     for(var i=1; i<DigiKey.positionHistory[0].length; i++) {
-                        graph.drawLine(ctx,
-                                       DigiKey.positionHistory[0][i-1], DigiKey.positionHistory[1][i-1],
-                                       DigiKey.positionHistory[0][i], DigiKey.positionHistory[1][i])
+                        ctx.beginPath()
+                        graph.line(ctx,
+                            DigiKey.positionHistory[0][i-1], DigiKey.positionHistory[1][i-1],
+                            DigiKey.positionHistory[0][i], DigiKey.positionHistory[1][i])
+                        ctx.stroke()
+
+                        ctx.beginPath()
+                        graph.arc(ctx, 
+                            DigiKey.positionHistory[0][i], DigiKey.positionHistory[1][i], 
+                            2, 0, 2*Math.PI)
+                        ctx.fill()
+
+                        if(i==DigiKey.positionHistory[0].length-1) {
+                            graph.text(ctx, 
+                                DigiKey.positionHistory[0][i], DigiKey.positionHistory[1][i],
+                                "" + (i+1),
+                                'left', 50, -50, true)
+                        } else {
+                            graph.text(ctx, 
+                                DigiKey.positionHistory[0][i], DigiKey.positionHistory[1][i],
+                                "" + (i+1),
+                                'left', 5, -10)
+                        }
                     }
                 }
-                ctx.restore()
-            }
 
-            Connections {
-                target: DigiKey
-                function onPositionUpdated(status) {
-                    canvas_key.key_status = status
-                    canvas_key.requestPaint()
+                // draw current position
+                ctx.beginPath()
+                graph.arc(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5, 0, 2*Math.PI)
+                ctx.fill()
+
+                ctx.lineWidth = 0.8
+
+                // draw outter circles
+                ctx.beginPath()
+                graph.arc(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5+0.1*sldPpm.value, 0, 2*Math.PI)
+                ctx.stroke()
+
+                ctx.beginPath()
+                graph.arc(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5+0.2*sldPpm.value, 0, 2*Math.PI)
+                ctx.stroke()
+
+                ctx.beginPath()
+                graph.arc(ctx, DigiKey.position.coordinate[0], DigiKey.position.coordinate[1], 5+0.3*sldPpm.value, 0, 2*Math.PI)
+                ctx.stroke()
+            }
+        }
+
+        Canvas {
+            id: canvas_key2
+            anchors.fill: parent
+            visible: swDebug.checked && sw2ndCalc.checked
+
+            property int key_status: 0
+
+            onPaint: {
+                console.log("canvas_key2.onPaint()", 
+                    ", swDebug.checked = ", swDebug.checked, 
+                    ", sw2ndCalc.checked = ", sw2ndCalc.checked, 
+                    ", key_status = ", key_status)
+
+                if(!graph.visible) {
+                    console.log("canvas_key2: !graph.visible -> skip onPaint()")
+                    return
                 }
-            }
 
-            Connections {
-                target: swTrace
-                function onToggled() {
-                    canvas_key.requestPaint()
+                var ctx = getContext("2d")
+                ctx.reset()
+
+                if(!swDebug.checked || !sw2ndCalc.checked || key_status == 0) {
+                    console.log("canvas_key2 -> skip onPaint()")
+                    return
                 }
-            }
 
-            MouseArea {
-                anchors.fill: parent
-                onWheel: {
-                    if (wheel.angleDelta.y > 0)
-                    {
-                        sldPpm.value += 5
+                graph.translate(ctx)
+                ctx.font = "16px sans-serif"
+                ctx.strokeStyle = "brown"
+                ctx.fillStyle = "brown"
+                ctx.setLineDash([2, 2]);
+
+                //console.log(DigiKey.positionHistory2)
+                if(swTrace.checked && DigiKey.positionHistory2[0].length > 1) {
+                    ctx.lineWidth = 1.5
+
+                    // first point
+                    ctx.beginPath()
+                    graph.arc(ctx, DigiKey.positionHistory2[0][0], DigiKey.positionHistory2[1][0], 2, 0, 2*Math.PI)
+                    ctx.fill()
+                    graph.text(ctx, DigiKey.positionHistory2[0][0], DigiKey.positionHistory2[1][0], "1", 'left', 5, -10)
+
+                    // next points
+                    for(var i=1; i<DigiKey.positionHistory2[0].length; i++) {
+                        ctx.beginPath()
+                        graph.line(ctx,
+                            DigiKey.positionHistory2[0][i-1], DigiKey.positionHistory2[1][i-1],
+                            DigiKey.positionHistory2[0][i], DigiKey.positionHistory2[1][i])
+                        ctx.stroke()
+
+                        ctx.beginPath()
+                        graph.arc(ctx, 
+                            DigiKey.positionHistory2[0][i], DigiKey.positionHistory2[1][i], 
+                            2, 0, 2*Math.PI)
+                        ctx.fill()
+
+                        if(i==DigiKey.positionHistory2[0].length-1) {
+                            graph.text(ctx, 
+                                DigiKey.positionHistory2[0][i], DigiKey.positionHistory2[1][i],
+                                "" + (i+1), 
+                                'left', 50, -50, true)
+                        } else {
+                            graph.text(ctx, 
+                                DigiKey.positionHistory2[0][i], DigiKey.positionHistory2[1][i],
+                                "" + (i+1), 
+                                'left', 5, -10)
+                        }
                     }
-                    else
-                    {
-                        sldPpm.value -= 5
-                    }
-                    wheel.accepted=true
                 }
+
+                // draw current position
+                ctx.beginPath()
+                graph.arc(ctx, DigiKey.position2.coordinate[0], DigiKey.position2.coordinate[1], 5, 0, 2*Math.PI)
+                ctx.fill()
+
+                ctx.lineWidth = 0.8
+
+                // draw outter circles
+                ctx.beginPath()
+                graph.arc(ctx, DigiKey.position2.coordinate[0], DigiKey.position2.coordinate[1], 5+0.1*sldPpm.value, 0, 2*Math.PI)
+                ctx.stroke()
+
+                ctx.beginPath()
+                graph.arc(ctx, DigiKey.position2.coordinate[0], DigiKey.position2.coordinate[1], 5+0.2*sldPpm.value, 0, 2*Math.PI)
+                ctx.stroke()
+
+                ctx.beginPath()
+                graph.arc(ctx, DigiKey.position2.coordinate[0], DigiKey.position2.coordinate[1], 5+0.3*sldPpm.value, 0, 2*Math.PI)
+                ctx.stroke()
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            enabled: !swAutoZoom.checked
+            onWheel: {
+                if (wheel.angleDelta.y > 0)
+                {
+                    sldPpm.value += 5
+                }
+                else
+                {
+                    sldPpm.value -= 5
+                }
+                wheel.accepted=true
             }
         }
 
@@ -330,8 +644,8 @@ RowLayout {
                 Layout.preferredHeight: 20
 
                 Text {
-                    Layout.preferredWidth: 15
-                    text: qsTr("PPM")
+                    Layout.preferredWidth: 30
+                    text: qsTr("Resolution")
                     MouseArea {
                         anchors.fill: parent
                         onDoubleClicked: {
@@ -344,12 +658,23 @@ RowLayout {
                     id: sldPpm
                     Layout.preferredWidth: 100
                     scale: 0.6
-                    value: 28
+                    value: 30
                     from: 20
-                    to: 100
+                    to: 200
                     stepSize: 5
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Pixels per Meter")
+
+                    onValueChanged: {
+			            console.log("sldPpm.onValueChanged()", 
+			            	", sldPpm.value = ", sldPpm.value)
+			            canvas_grid.requestPaint()
+			            canvas_zone.requestPaint()
+			            canvas_anchors.requestPaint()
+			            canvas_real_key.requestPaint()
+			            canvas_key.requestPaint()
+			            canvas_key2.requestPaint()
+			        }
                 }
             }
 
@@ -358,28 +683,12 @@ RowLayout {
                 Layout.preferredHeight: 20
 
                 Text {
-                    Layout.preferredWidth: 20
-                    text: qsTr("Debug")
+                    Layout.preferredWidth: 30
+                    text: qsTr("AutoZoom")
                 }
 
                 Switch {
-                    id: swDebug
-                    scale: 0.4
-                    checked: true
-                }
-            }
-
-            RowLayout {
-                spacing: 0
-                Layout.preferredHeight: 20
-
-                Text {
-                    Layout.preferredWidth: 20
-                    text: qsTr("Trace")
-                }
-
-                Switch {
-                    id: swTrace
+                    id: swAutoZoom
                     scale: 0.4
                 }
             }
@@ -389,7 +698,7 @@ RowLayout {
                 Layout.preferredHeight: 20
 
                 Text {
-                    Layout.preferredWidth: 20
+                    Layout.preferredWidth: 30
                     text: qsTr("Refers")
                 }
 
@@ -397,6 +706,99 @@ RowLayout {
                     id: swRefAnchors
                     scale: 0.4
                     checked: true
+                    onToggled: {
+                        console.log("swRefAnchors.onToggled -> canvas_grid.requestPaint()")
+                        canvas_grid.requestPaint()
+                    }
+                }
+            }
+
+            RowLayout {
+                spacing: 0
+                Layout.preferredHeight: 20
+
+                Text {
+                    Layout.preferredWidth: 30
+                    text: qsTr("Debug")
+                }
+
+                Switch {
+                    id: swDebug
+                    scale: 0.4
+                    //checked: true
+                    onToggled: {
+                        DigiKey.debuggable = swDebug.checked
+                        console.log("swDebug.onToggled -> canvas_anchors.requestPaint()")
+                        canvas_anchors.requestPaint()
+
+                        console.log("swDebug.onToggled -> canvas_key.requestPaint()")
+                        canvas_key.requestPaint()
+                    }
+                }
+            }
+
+            RowLayout {
+                spacing: 0
+                Layout.preferredHeight: 20
+
+                Text {
+                    Layout.preferredWidth: 30
+                    text: qsTr("Trace")
+                }
+
+                Switch {
+                    id: swTrace
+                    scale: 0.4
+                    //checked: true
+                    onToggled: {
+                        console.log("swTrace.onToggled -> canvas_key.requestPaint()")
+                        canvas_key.requestPaint()
+
+                        console.log("swTrace.onToggled -> canvas_key2.requestPaint()")
+                        canvas_key2.requestPaint()
+                    }
+                }
+            }
+
+            RowLayout {
+                spacing: 0
+                Layout.preferredHeight: 20
+
+                Text {
+                    Layout.preferredWidth: 30
+                    text: qsTr("1st Calc")
+                }
+
+                Switch {
+                    id: sw1stCalc
+                    scale: 0.4
+                    //checked: true
+                    onToggled: {
+                        console.log("sw1stCalc.onToggled -> canvas_key.requestPaint()")
+                        canvas_key.requestPaint()
+                    }
+                }
+            }
+
+            RowLayout {
+                spacing: 0
+                Layout.preferredHeight: 20
+
+                Text {
+                    Layout.preferredWidth: 30
+                    text: qsTr("2nd Calc")
+                }
+
+                Switch {
+                    id: sw2ndCalc
+                    scale: 0.4
+                    //checked: true
+                    onToggled: {
+                        console.log("sw2ndCalc.onToggled -> canvas_key2.requestPaint()")
+                        canvas_key2.requestPaint()
+
+                        DigiKey.use2ndCalc = sw2ndCalc.checked
+                    }
                 }
             }
         }
@@ -429,12 +831,19 @@ RowLayout {
                     Layout.preferredHeight: 30
                     Layout.preferredWidth: 50
                     font.pointSize: 8
-                    text: "2"
 
-                    onTextChanged: {
-                        if(!isNaN(parseFloat(text))) {
-                            canvas_grid.requestPaint()
+                    Component.onCompleted: {
+                        text = DigiKey.params.CarWidth
+                    }
+
+                    onTextEdited: {
+                        var n = parseInt(text)
+                        if(!isNaN(n)) {
+                            DigiKey.params.CarWidth = n
+                        } else {
+                            DigiKey.params.CarWidth = 2.4
                         }
+                        canvas_grid.requestPaint()
                     }
                 }
 
@@ -449,12 +858,19 @@ RowLayout {
                     Layout.preferredHeight: 30
                     Layout.preferredWidth: 50
                     font.pointSize: 8
-                    text: "5"
 
-                    onTextChanged: {
-                        if(!isNaN(parseFloat(text))) {
-                            canvas_grid.requestPaint()
+                    Component.onCompleted: {
+                        text = DigiKey.params.CarHeight
+                    }
+
+                    onTextEdited: {
+                        var n = parseInt(text)
+                        if(!isNaN(n)) {
+                            DigiKey.params.CarHeight = n
+                        } else {
+                            DigiKey.params.CarHeight = 5.5
                         }
+                        canvas_grid.requestPaint()
                     }
                 }
             }
@@ -464,7 +880,7 @@ RowLayout {
 
                 Text {
                     Layout.preferredWidth: 50
-                    text: qsTr("A1 Offset")
+                    text: qsTr("Offset")
                 }
 
                 Text {
@@ -478,12 +894,19 @@ RowLayout {
                     Layout.preferredHeight: 30
                     Layout.preferredWidth: 50
                     font.pointSize: 8
-                    text: "-0.5"
 
-                    onTextChanged: {
-                        if(!isNaN(parseFloat(text))) {
-                            canvas_grid.requestPaint()
+                    Component.onCompleted: {
+                        text = DigiKey.params.CarOffsetX
+                    }
+
+                    onTextEdited: {
+                        var n = parseInt(text)
+                        if(!isNaN(n)) {
+                            DigiKey.params.CarOffsetX = n
+                        } else {
+                            DigiKey.params.CarOffsetX = 0.3
                         }
+                        canvas_grid.requestPaint()
                     }
                 }
 
@@ -498,22 +921,57 @@ RowLayout {
                     Layout.preferredHeight: 30
                     Layout.preferredWidth: 50
                     font.pointSize: 8
-                    text: "-0.5"
 
-                    onTextChanged: {
-                        if(!isNaN(parseFloat(text))) {
-                            canvas_grid.requestPaint()
+                    Component.onCompleted: {
+                        text = DigiKey.params.CarOffsetY
+                    }
+
+                    onTextEdited: {
+                        var n = parseInt(text)
+                        if(!isNaN(n)) {
+                            DigiKey.params.CarOffsetY = n
+                        } else {
+                            DigiKey.params.CarOffsetY = 0.3
                         }
+                        canvas_grid.requestPaint()
                     }
                 }
             }
         }
 
-        onPixelsPerMeterChanged: {
-            canvas_grid.requestPaint()
-            canvas_anchors.requestPaint()
-            canvas_real_key.requestPaint()
-            canvas_key.requestPaint()
+        ColumnLayout {
+            anchors.bottom: parent.bottom
+            anchors.right: parent.right
+
+            Text {
+                id: txt_real_key
+                Layout.alignment: Qt.AlignRight
+                visible: swRealKey.checked
+
+                text: "Real Position (" + parseFloat(realKey.px.text).toFixed(2) + ", " + parseFloat(realKey.py.text).toFixed(2) + ")"
+                font.pointSize: 10
+                color: "darkred"
+            }
+
+            Text {
+                id: txt_key
+                Layout.alignment: Qt.AlignRight
+                visible: sw1stCalc.checked
+
+                text: ""
+                font.pointSize: 10
+                color: "blue"
+            }
+
+            Text {
+                id: txt_key2
+                Layout.alignment: Qt.AlignRight
+                visible: swDebug.checked && sw2ndCalc.checked
+
+                text: ""
+                font.pointSize: 10
+                color: "brown"
+            }
         }
     }
 
@@ -527,7 +985,7 @@ RowLayout {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             rotation: -90
-            text: qsTr("Settings")
+            text: (settings.visible ? "\u25BC" : "\u25B2") + " " + qsTr("Settings") + " " + (settings.visible ? "\u25BC" : "\u25B2")
             font.pointSize: 10
             color: "blue"
         }
@@ -547,7 +1005,7 @@ RowLayout {
         radius: 10
         color: "#FCFCFC"
         border.color: "#687D91"
-        visible: false
+        //visible: false
 
         ColumnLayout {
             anchors.fill: parent
@@ -706,11 +1164,21 @@ RowLayout {
 
                 Text {
                     anchors.fill: parent
-                    text: qsTr("Anchors") + ": " + (anchors.visible ? qsTr("Hide") : qsTr("Show"))
+                    text: qsTr("Anchors")
                     leftPadding: 5
                     verticalAlignment: Text.AlignVCenter
                     font.pointSize: 10
                     color: "blue"
+                }
+
+                Text {
+                    anchors.fill: parent
+                    text: (anchors.visible ? qsTr("Hide \u25B2") : qsTr("Show \u25BC"))
+                    rightPadding: 5
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment:Text.AlignRight
+                    font.pointSize: 10
+                    color: "darkblue"
                 }
 
                 MouseArea {
@@ -725,28 +1193,42 @@ RowLayout {
                 id: anchors
                 rows: 4
                 columns: 2
-                visible: false
+                //visible: false
 
                 Repeater {
                     model: 8
-                    PositionInput {
-                        name: "A" + (index + 1)
-                        Component.onCompleted: {
-                            px.text = DigiKey.params.anchors[index][0]
-                            py.text = DigiKey.params.anchors[index][1]
-                            pz.text = DigiKey.params.anchors[index][2]
+                    RowLayout {
+                        CheckBox {
+                            Layout.preferredWidth: 20
+                            scale: 0.5
+                            checked: parseFloat(DigiKey.params.anchors[index][3])==1.0
+                            onToggled: {
+                                DigiKey.params.set_anchor(index, 3, checked ? "1.00" : "0.00")
+                                console.log("DigiKey.anchors[*].visible -> canvas_anchors.requestPaint()")
+                                canvas_anchors.requestPaint()
+                            }
                         }
 
-                        onPxTextChanged: {
-                            DigiKey.params.set_anchor(index, 0, parseFloat(px.text))
-                        }
+                        PositionInput {
+                            name: "A" + (index + 1)
+                            nameWidth: 10
+                            Component.onCompleted: {
+                                px.text = DigiKey.params.anchors[index][0]
+                                py.text = DigiKey.params.anchors[index][1]
+                                pz.text = DigiKey.params.anchors[index][2]
+                            }
 
-                        onPyTextChanged: {
-                            DigiKey.params.set_anchor(index, 1, parseFloat(py.text))
-                        }
+                            onPxTextChanged: {
+                                DigiKey.params.set_anchor(index, 0, parseFloat(px.text))
+                            }
 
-                        onPzTextChanged: {
-                            DigiKey.params.set_anchor(index, 2, parseFloat(pz.text))
+                            onPyTextChanged: {
+                                DigiKey.params.set_anchor(index, 1, parseFloat(py.text))
+                            }
+
+                            onPzTextChanged: {
+                                DigiKey.params.set_anchor(index, 2, parseFloat(pz.text))
+                            }
                         }
                     }
                 }
@@ -757,6 +1239,7 @@ RowLayout {
                 Layout.preferredHeight: 30
                 radius: 5
                 color: "#E6E9ED"
+                visible: swDebug.checked
 
                 Text {
                     anchors.fill: parent
@@ -774,26 +1257,7 @@ RowLayout {
                 Layout.leftMargin: 15
                 text: qsTr("Waiting...")
                 wrapMode: Text.WordWrap
-                Connections {
-                    target: DigiKey
-                    function onAnchorsUpdated() {
-                        var anchors = DigiKey.anchors
-                        var msg = ""
-                        for (var i = 0; i < anchors.length; i++) {
-                            msg += "A" + (i + 1) + ": "
-                            msg += "RSSI = <font color='green'>" + anchors[i].RSSI.toFixed(0) + "dBm</font>, "
-                            msg += "SNR = <font color='green'>" + anchors[i].SNR.toFixed(2) + "dB</font>, "
-                            msg += "NEV = <font color='green'>" + anchors[i].NEV + "</font>, "
-                            msg += "NER = <font color='green'>" + anchors[i].NER + "</font>, "
-                            msg += "PER = <font color='green'>" + anchors[i].PER.toFixed(2) + "%</font>"
-
-                            if (i < anchors.length - 1)
-                                msg += "<br>"
-                        }
-
-                        receiverStatus.text = msg
-                    }
-                }
+                visible: swDebug.checked
             }
 
             Rectangle {
@@ -842,37 +1306,6 @@ RowLayout {
                     anchors.fill: parent
                     text: qsTr("Waiting...")
                 }
-
-                Connections {
-                    target: DigiKey
-                    function onPositionUpdated(status) {
-                        var position = DigiKey.position
-                        var msg = "<br><br>"
-                        if (status === 1) {
-                            msg += "Location update (" + positionLog.count + ") at <font color='blue'>"
-                            msg += "" + position.coordinate[0].toFixed(2) + ", "
-                            msg += "" + position.coordinate[1].toFixed(2) + ", "
-                            msg += "" + position.coordinate[2].toFixed(2)
-                            msg += "</font>"
-                        } else if (status === -1) {
-                            msg += "<font color='purple'>No new location received</font>"
-                        } else if (status === -2) {
-                            msg += "<font color='purple'>Can not calculate location</font>"
-                        } else {
-                            msg += "Unknown location data"
-                        }
-
-                        msg += "<br>"
-                        for (var i=0; i<position.distance.length; i++) {
-                            var d = parseFloat(position.distance[i])
-                            msg += "D" + (i+1) + " = " + ((isNaN(d) || d < 0) ? "<font color='gray'>failed" : "<font color='green'>" + position.distance[i].toFixed(2)) + "</font>, "
-                            if(i==3) msg += "<br>"
-                        }
-                        positionLog.count += 1
-                        positionLog.text += msg
-                        positionLogScroller.scrollTo(Qt.Vertical, 1)
-                    }
-                }
             }
 
             Rectangle {
@@ -909,14 +1342,17 @@ RowLayout {
                     pz.text: "0"
 
                     onPxTextChanged: {
+                    	console.log("realKey.onPxTextChanged() -> canvas_anchors.requestPaint()")
                         if(swRealKey != null && swRealKey.checked) canvas_real_key.requestPaint()
                     }
 
                     onPyTextChanged: {
+                    	console.log("realKey.onPyTextChanged() -> canvas_anchors.requestPaint()")
                         if(swRealKey != null && swRealKey.checked) canvas_real_key.requestPaint()
                     }
 
                     onPzTextChanged: {
+                    	console.log("realKey.onPzTextChanged() -> canvas_anchors.requestPaint()")
                         if(swRealKey != null && swRealKey.checked) canvas_real_key.requestPaint()
                     }
                 }
@@ -931,6 +1367,11 @@ RowLayout {
                     id: swRealKey
                     scale: 0.6
                     Layout.preferredWidth: 40
+
+                    onToggled: {
+                    	console.log("swRealKey.onToggled -> canvas_real_key.requestPaint()")
+                    	canvas_real_key.requestPaint()
+                    }
                 }
             }
 
@@ -966,19 +1407,123 @@ RowLayout {
         }
     }
 
-    /*
-    Component.onCompleted: {
-        console.log("DigiKey.receiverStatus", DigiKey.receiverStatus)
-        console.log("DigiKey.position.coordinate", DigiKey.position.coordinate)
-        console.log("DigiKey.position.distance", DigiKey.position.distance)
-        console.log("DigiKey.anchors", DigiKey.anchors)
-        for (var i = 0; i < DigiKey.anchors.length; i++) {
-            console.log(DigiKey.anchors[i].RSSI)
-            console.log(DigiKey.anchors[i].SNR)
-            console.log(DigiKey.anchors[i].NEV)
-            console.log(DigiKey.anchors[i].NER)
-            console.log(DigiKey.anchors[i].PER)
+    // connect to backend's signals
+    Connections {
+        target: DigiKey
+
+        function onParamsUpdated() {
+            console.log("DigiKey.onParamsUpdated() -> canvas_anchors.requestPaint()")
+            canvas_anchors.requestPaint()
+        }
+
+        function onPositionUpdated(status) {
+        	console.log("DigiKey.onPositionUpdated()", 
+        		", status = ", status,
+        		", swDebug.checked = ", swDebug.checked)
+
+            var isSldPpmChanged = true
+
+            if(swAutoZoom.checked) {
+                var min_distance = 10000.0
+                for (var i = 0; i < DigiKey.params.anchors.length; i++) {
+                    var d = DigiKey.position.distance[i]
+                    if(d >= 0 && d < min_distance) {
+                        min_distance = d;
+                    }
+                }
+
+                if(min_distance > 15 && sldPpm.value != 25) {
+                    sldPpm.value = 25
+                } else if (min_distance > 10 && sldPpm.value != 50) {
+                    sldPpm.value = 50
+                } else if (min_distance > 5 && sldPpm.value != 75) {
+                    sldPpm.value = 75
+                } else if (min_distance > 1 && sldPpm.value != 100) {
+                    sldPpm.value = 100
+                } else if(sldPpm.value != 150){
+                    sldPpm.value = 150
+                } else {
+                    isSldPpmChanged = false
+                }
+            } else {
+                isSldPpmChanged = false
+            }
+
+            if(!isSldPpmChanged) {
+                console.log("DigiKey.onPositionUpdated() -> canvas_key.requestPaint()")
+                canvas_key.key_status = status
+                canvas_key.requestPaint()
+
+                console.log("DigiKey.onPositionUpdated() -> canvas_anchors.requestPaint()")
+                canvas_anchors.requestPaint()
+            }
+            txt_key.text = "Calc. Position (" + DigiKey.position.coordinate[0].toFixed(2) + ", " +  DigiKey.position.coordinate[1].toFixed(2) + ")"
+
+            if(status == 0) {
+            	console.log("positionLog -> skip logging")
+            } else {
+	            var position = DigiKey.position
+	            var msg = "<br><br>"
+	            if (status === 1) {
+	                msg += "Location update (" + positionLog.count + ") at <font color='blue'>"
+	                msg += "" + position.coordinate[0].toFixed(2) + ", "
+	                msg += "" + position.coordinate[1].toFixed(2) + ", "
+	                msg += "" + position.coordinate[2].toFixed(2)
+	                msg += "</font>"
+	            } else if (status === -1) {
+	                msg += "<font color='purple'>No new location received</font>"
+	            } else if (status === -2) {
+	                msg += "<font color='purple'>Can not calculate location</font>"
+	            } else {
+	                msg += "Unknown location data"
+	            }
+
+	            msg += "<br>"
+	            for (var i=0; i<position.distance.length; i++) {
+	                var d = parseFloat(position.distance[i])
+	                msg += "D" + (i+1) + " = " + ((isNaN(d) || d < 0) ? "<font color='gray'>failed" : "<font color='green'>" + position.distance[i].toFixed(2)) + "</font>, "
+	                if(i==3) msg += "<br>"
+	            }
+	            positionLog.count += 1
+	            positionLog.text += msg
+	            positionLogScroller.scrollTo(Qt.Vertical, 1)
+        	}
+        }
+
+        function onPosition2Updated(status) {
+            console.log("DigiKey.onPosition2Updated()",
+                ", status = ", status)
+            console.log("DigiKey.onPosition2Updated -> canvas_key2.requestPaint()")
+            canvas_key2.key_status = status
+            canvas_key2.requestPaint()
+
+            txt_key2.text = "2nd Calc. Position (" + DigiKey.position2.coordinate[0].toFixed(2) + ", " +  DigiKey.position2.coordinate[1].toFixed(2) + ")"
+        }
+
+        function onAnchorsUpdated() {
+            var anchors = DigiKey.anchors
+            var msg = ""
+            for (var i = 0; i < anchors.length; i++) {
+                if(parseFloat(DigiKey.params.anchors[i][3])==1.0) {
+                    msg += "A" + (i + 1) + ": "
+                    msg += "F  = <font color='green'>" + anchors[i].RSSI.toFixed(0) + "dBm</font>, "
+                    msg += "Ei = <font color='green'>" + anchors[i].SNR + "</font>, "
+                    msg += "Fi = <font color='green'>" + anchors[i].NEV + "</font>, "
+                    msg += "Mi = <font color='green'>" + anchors[i].NER + "</font>, "
+                    msg += "T  = <font color='green'>" + anchors[i].PER.toFixed(0) + "dBm</font>"
+
+                    if (i < anchors.length - 1)
+                        msg += "<br>"
+                }
+            }
+
+            receiverStatus.text = msg
+        }
+
+        function onZoneUpdated() {
+            console.log("DigiKey.onZoneUpdated() -> canvas_zone.requestPaint()")
+            canvas_zone.activatedZone = DigiKey.activatedZone
+            canvas_zone.requestPaint()
         }
     }
-    */
 }
