@@ -14,3 +14,6 @@ Qt QML (via PySide2 (Qt for Python))
 
 ## License
 This project comes with a GNU LGPL v3 license.  
+
+## Notes
+This repo only hold opensource files, which is under QT open-source license. The core of ranger function are hidden due to copyright license. In this project, the ranger file is just an interface which returns fake data.
