@@ -9,6 +9,11 @@ CAN-USB interface
 Python 3  
 Qt QML (via PySide2 (Qt for Python))
 
+create a virtual environment if needed, 
+```
+pip install PySide2
+```
+
 ### Preview
 ![UI](UI.png)
 
