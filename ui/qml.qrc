@@ -1,9 +1,12 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
-        <file>DemoTab.qml</file>
+        
+        <file>PositionFromDeviceTab.qml</file>
+        <file>PositionFromLogTab.qml</file>
+        <file>DistanceTab.qml</file>
+
         <file>NumberInput.qml</file>
         <file>PositionInput.qml</file>
-        <file>DistanceTab.qml</file>
     </qresource>
 </RCC>

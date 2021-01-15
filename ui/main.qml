@@ -18,11 +18,8 @@ Window {
 
         Repeater {
             model: [
-                qsTr("Demo"),
-                qsTr("Distance"),
-                qsTr("CAN Data"),
-                qsTr("CIR 1"),
-                qsTr("CIR 2")
+                qsTr("Map Viewer"),
+                qsTr("Distance History"),
             ]
             TabButton {
                 text: modelData
@@ -41,16 +38,9 @@ Window {
         currentIndex: tabBar.currentIndex
 
         DemoTab {
-            id: demoTab
         }
 
         DistanceTab {
-            id: distanceTab
         }
     }
-    /*
-    Component.onCompleted: {
-        console.log("DigiKey", DigiKey)
-    }
-    */
 }
