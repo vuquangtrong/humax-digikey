@@ -1,0 +1,6 @@
+[INFO]
+status = 3
+reg_status = 1
+car_ctrl_cmd = 0
+rssi = -27
+
