@@ -59,17 +59,148 @@ Item {
                 x: (-width + view.width) / 2
                 y: (-height + view.height) / 2 + 120
 
-                
-                Image {
+                Item {
                     id: car
-                    property double car_width: 1.8 // cm
-                    property double car_height: 4.6 // cm
-                    width: car_width*100
-                    height: car_height*100
-                    x: canvas.translateX(car, car_width/2-0.4)
-                    y: canvas.translateY(car, car_height/2-0.4)
-                    source: "car.png"
-                    opacity: 0.25
+                    
+
+                    /*
+                    width: 180
+                    height: 460
+                    x: 1460
+                    y: 1080
+                    */
+                    z: car_resizer.visible ? 1000 : 0
+
+                    Component.onCompleted: {
+                        car.width = DigiKeyFromLog.car.width
+                        car.height = DigiKeyFromLog.car.height
+                        car.x = DigiKeyFromLog.car.x + canvas.width/2
+                        car.y = DigiKeyFromLog.car.y + canvas.height/2
+                    }
+
+                    Image {
+                        anchors.fill: parent
+                        source: "car.png"
+                        opacity: car_resizer.visible ? 0.5: 0.25
+                    }
+
+                    Rectangle {
+                        id: car_resizer
+                        anchors.fill: parent
+                        color: "transparent"
+                        border.color: "steelblue"
+                        border.width: 2
+                        visible: false
+
+                        MouseArea {
+                            anchors.fill: parent
+                            drag.target: car
+                            acceptedButtons: Qt.LeftButton
+                            propagateComposedEvents: false
+                        }
+
+                        Rectangle {
+                            width: 20
+                            height: 20
+                            radius: 10
+                            color: "steelblue"
+                            anchors.horizontalCenter: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            MouseArea {
+                                anchors.fill: parent
+                                drag{ target: parent; axis: Drag.XAxis }
+                                acceptedButtons: Qt.LeftButton
+                                propagateComposedEvents: false
+
+                                onMouseXChanged: {
+                                    if(drag.active){
+                                        car.width = car.width - mouseX
+                                        car.x = car.x + mouseX
+                                        if(car.width < 30)
+                                            car.width = 30
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            width: 20
+                            height: 20
+                            radius: 10
+                            color: "steelblue"
+                            anchors.horizontalCenter: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            MouseArea {
+                                anchors.fill: parent
+                                drag{ target: parent; axis: Drag.XAxis }
+                                acceptedButtons: Qt.LeftButton
+                                propagateComposedEvents: false
+
+                                onMouseXChanged: {
+                                    if(drag.active){
+                                        car.width = car.width + mouseX
+                                        if(car.width < 30)
+                                            car.width = 30
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            width: 20
+                            height: 20
+                            radius: 10
+                            color: "steelblue"
+                            x: parent.x / 2
+                            y: 0
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.verticalCenter: parent.top
+
+                            MouseArea {
+                                anchors.fill: parent
+                                drag{ target: parent; axis: Drag.YAxis }
+                                acceptedButtons: Qt.LeftButton
+                                propagateComposedEvents: false
+
+                                onMouseYChanged: {
+                                    if(drag.active){
+                                        car.height = car.height - mouseY
+                                        car.y = car.y + mouseY
+                                        if(car.height < 30)
+                                            car.height = 30
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            width: 20
+                            height: 20
+                            radius: 10
+                            color: "steelblue"
+                            x: parent.x / 2
+                            y: parent.y
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.verticalCenter: parent.bottom
+
+                            MouseArea {
+                                anchors.fill: parent
+                                drag{ target: parent; axis: Drag.YAxis }
+                                acceptedButtons: Qt.LeftButton
+                                propagateComposedEvents: false
+
+                                onMouseYChanged: {
+                                    if(drag.active){
+                                        car.height = car.height + mouseY
+                                        if(car.height < 30)
+                                            car.height = 30
+                                    }
+                                }
+                            }
+                        }
+                    }  
                 }
                 
                 GridLine {
@@ -186,7 +317,6 @@ Item {
                         }
                     }
                 }
-
 
                 Item {
                     id: zones
@@ -432,8 +562,13 @@ Item {
                 }
 
                 MouseArea {
+                    id: canvas_mouse
                     anchors.fill: parent
-                    propagateComposedEvents: true
+                    //propagateComposedEvents: true
+                    
+                    // Make canvas draggable
+                    drag.target: canvas
+                    acceptedButtons: Qt.LeftButton
 
                     property double factor: 2
 
@@ -463,13 +598,104 @@ Item {
 
                 Behavior on x { PropertyAnimation { duration: transitionDuration; easing.type: Easing.InOutCubic } }
                 Behavior on y { PropertyAnimation { duration: transitionDuration; easing.type: Easing.InOutCubic } }
+            }
 
-                /* Make canvas draggable */
-                MouseArea {
-                    drag.target: canvas
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    propagateComposedEvents: true
+            
+            Column {
+                anchors.left: parent.left
+                anchors.leftMargin: 5
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 5
+                spacing: 2
+
+                CheckBox { 
+                    id: car_resizable
+                    text: "Set Car location"
+
+                    onClicked: {
+                        if (checked) {
+                            car_resizer.visible = true
+                        } else {
+                            car_resizer.visible = false
+                            DigiKeyFromLog.car.width = car.width
+                            DigiKeyFromLog.car.height = car.height
+                            DigiKeyFromLog.car.x = car.x - canvas.width/2
+                            DigiKeyFromLog.car.y = car.y - canvas.height/2
+                            DigiKeyFromLog.save_car_location()
+                        }
+                    }
+                }
+
+                Row {
+                    visible: car_resizable.checked
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 100
+                        text: "Car Width (cm):"
+                    }
+                    TextField {
+                        width: 50
+                        height: 30
+                        text:  car.width.toFixed(0)
+
+                        onEditingFinished: {
+                            car.width = parseInt(text)
+                        }
+                    }
+                }
+
+                Row {
+                    visible: car_resizable.checked
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 100
+                        text: "Car Height (cm):"
+                    }
+                    TextField {
+                        width: 50
+                        height: 30
+                        text:  car.height.toFixed(0)
+
+                        onEditingFinished: {
+                            car.height = parseInt(text)
+                        }
+                    }
+                }
+
+                Row {
+                    visible: car_resizable.checked
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 100
+                        text: "Car X (cm):"
+                    }
+                    TextField {
+                        width: 50
+                        height: 30
+                        text:  car.x.toFixed(0) - canvas.width/2
+
+                        onEditingFinished: {
+                            car.x = parseInt(text) + canvas.width/2
+                        }
+                    }
+                }
+
+                Row {
+                    visible: car_resizable.checked
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 100
+                        text: "Car Y (cm):"
+                    }
+                    TextField {
+                        width: 50
+                        height: 30
+                        text:  car.y.toFixed(0) - canvas.height/2
+
+                        onEditingFinished: {
+                            car.y = parseInt(text) + canvas.height/2
+                        }
+                    }
                 }
             }
 
@@ -717,7 +943,7 @@ Item {
                             verticalAlignment: Text.AlignVCenter
                             horizontalAlignment:Text.AlignRight
                             rightPadding: 5
-                            text: (anchors.visible ? qsTr("Hide \u25B2") : qsTr("Show \u25BC"))
+                            text: (anchors.visible ? "Hide \u25B2" : "Show \u25BC")
                             color: "darkblue"
                         }
 
@@ -930,7 +1156,7 @@ Item {
                             anchors.fill: parent
 
                             Text {
-                                Layout.preferredWidth: 40
+                                Layout.preferredWidth: 20
                                 height: parent.height
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: 5

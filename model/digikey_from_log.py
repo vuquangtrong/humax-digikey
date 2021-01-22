@@ -14,6 +14,7 @@ from .anchor import Anchor
 from .params import Params
 from .ble import BLE
 from .performance import Performance
+from .car import Car
 
 
 ###############################
@@ -33,6 +34,7 @@ UPDATE_INTERVAL = 300 # ms
 class DigiKeyFromLog(QObject):
 
     # SIGNALS
+    carUpdated = Signal()
     bleUpdated = Signal()
     settingsUpdated = Signal()
     locationsUpdated = Signal()
@@ -51,11 +53,13 @@ class DigiKeyFromLog(QObject):
         qmlRegisterType(BLE, 'BLE', 1, 0, 'BLE')
         qmlRegisterType(Params, 'Params', 1, 0, 'Params')
         qmlRegisterType(Performance, 'Performance', 1, 0, 'Performance')
+        qmlRegisterType(Car, 'Car', 1, 0, 'Car')
 
         self.__uwb_config_file = ConfigParser()
         self.__uwb_location_log_file = ConfigParser()
         self.__uwb_ble_info_file = ConfigParser()
         
+        self.__car = Car()
         self.__ble = BLE()
         self.__params = Params()
         self.__anchors = [Anchor() for _ in range(8)] # A1 ~ A8
@@ -296,6 +300,10 @@ class DigiKeyFromLog(QObject):
         self.read_log()
         self.read_ble()
 
+    def get_car(self):
+        ##print("get_car", self.__car)
+        return self.__car
+
     def get_ble(self):
         ##print("get_ble", self.__ble)
         return self.__ble
@@ -358,6 +366,10 @@ class DigiKeyFromLog(QObject):
     
     ### SLOTS
     @Slot()
+    def save_car_location(self):
+        self.__car.save_config()
+    
+    @Slot()
     def show_previous_location(self):
         if self.__location_current_index > 1:
             self.set_current_location_index(self.__location_current_index - 1)
@@ -386,6 +398,7 @@ class DigiKeyFromLog(QObject):
             self.__ui_range.stopRanging()
     
     ### PROPERTIES
+    car = Property(Car, fget=get_car, notify=carUpdated)
     ble = Property(BLE, fget=get_ble, notify=bleUpdated)
     params = Property(Params, fget=get_params, notify=settingsUpdated)
     anchors = Property('QVariantList', fget=get_anchors, notify=settingsUpdated)

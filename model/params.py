@@ -15,6 +15,10 @@ class Params(QObject):
         self.__R = 3
         self.__P = 0
 
+        self.__car_width = 180
+        self.__car_width = 460
+        self.__car_x = 1460
+        self.__car_y = 1080
 
     def get_N(self):
         #print("get_N", self.__N)

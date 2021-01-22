@@ -5,7 +5,7 @@ import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
 
 Window {
-    title: qsTr("DigiKey Viewer")
+    title: "DigiKey Viewer"
     visible: true
 
     width: 1920
@@ -17,7 +17,7 @@ Window {
 
         Repeater {
             model: [
-                qsTr("Map Viewer"),
+                "Map Viewer"
             ]
             TabButton {
                 text: modelData
