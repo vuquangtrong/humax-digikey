@@ -231,6 +231,13 @@ class DigiKeyFromLog(QObject):
                                 location.performance[i].PER = per
                             except Exception as ex:
                                 print(ex)
+
+                            try:
+                                mpwr = int(section.get(f"d{i+1}_maxtappwr", 0))
+                                #print(f"d{i+1}_maxtappwr", mpwr)
+                                location.performance[i].MPWR = mpwr
+                            except Exception as ex:
+                                print(ex)
                     except Exception as ex:
                         print(ex)
 
@@ -368,6 +375,10 @@ class DigiKeyFromLog(QObject):
     @Slot()
     def save_car_location(self):
         self.__car.save_config()
+    
+    @Slot()
+    def save_ble_zone(self):
+        self.__ble.save_config()
     
     @Slot()
     def show_previous_location(self):

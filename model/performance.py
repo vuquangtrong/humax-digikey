@@ -15,6 +15,7 @@ class Performance(QObject):
         self.__NEV = 0
         self.__NER = 0
         self.__PER = 0
+        self.__MPWR = 0
 
 
     def get_RSSI(self):
@@ -67,10 +68,21 @@ class Performance(QObject):
             #print("set_PER", self.__PER)
             self.updated.emit()
     
+    def get_MPWR(self):
+        #print("get_MPWR", self.__MPWR)
+        return self.__MPWR
+
+    def set_MPWR(self, value):
+        if value != self.__MPWR:
+            self.__MPWR = value
+            #print("set_MPWR", self.__MPWR)
+            self.updated.emit()
+    
     ## PROPERTIES
     RSSI = Property(int, fget=get_RSSI, fset=set_RSSI, notify=updated)
     SNR = Property(int, fget=get_SNR, fset=set_SNR, notify=updated)
     NEV = Property(int, fget=get_NEV, fset=set_NEV, notify=updated)
     NER = Property(int, fget=get_NER, fset=set_NER, notify=updated)
     PER = Property(int, fget=get_PER, fset=set_PER, notify=updated)
+    MPWR = Property(int, fget=get_MPWR, fset=set_MPWR, notify=updated)
    

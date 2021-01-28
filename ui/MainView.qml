@@ -319,6 +319,116 @@ Item {
                 }
 
                 Item {
+                    id: ble
+                    property int radius: 1000 // cm
+
+                    width: 2*radius
+                    height: 2*radius
+                    z: ble_resizer.visible ? 1000 : 0
+                    visible: sw_ble_zone.checked
+
+                    Component.onCompleted: {
+                        ble.radius = DigiKeyFromLog.ble.radius
+                        ble.x = DigiKeyFromLog.ble.x + canvas.width/2 - ble.radius
+                        ble.y = DigiKeyFromLog.ble.y + canvas.height/2 - ble.radius
+                    }
+
+                    Shape {
+                        anchors.fill: parent
+                        opacity: ble_resizer.visible ? 0.5 : 0.25
+
+                        ShapePath {
+
+                            fillGradient: RadialGradient {
+                                centerX: ble.width/2
+                                centerY: ble.height/2
+                                centerRadius: ble.width/2
+                                focalX: centerX
+                                focalY: centerY
+                                GradientStop { position: 0; color: "transparent" }
+                                GradientStop { position: 0.8; color: "#0F3498DB" }
+                                GradientStop { position: 1; color: "#7F3498DB" }
+                            }
+
+                            PathAngleArc {
+                                moveToStart: true
+                                centerX: ble.width/2
+                                centerY: ble.height/2
+                                radiusX: ble.width/2
+                                radiusY: ble.width/2
+                                startAngle: 0
+                                sweepAngle: 360
+                            }    
+                        }
+                    }
+
+                    Rectangle {
+                        id: ble_resizer
+                        anchors.fill: parent
+                        color: "transparent"
+                        visible: false
+
+                        MouseArea {
+                            anchors.fill: parent
+                            drag.target: ble
+                            acceptedButtons: Qt.LeftButton
+                            propagateComposedEvents: false
+                        }
+
+                        /*
+                        Rectangle {
+                            width: 20
+                            height: 20
+                            radius: 10
+                            color: "steelblue"
+                            anchors.horizontalCenter: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            MouseArea {
+                                anchors.fill: parent
+                                drag{ target: parent; axis: Drag.XAxis }
+                                acceptedButtons: Qt.LeftButton
+                                propagateComposedEvents: false
+
+                                onMouseXChanged: {
+                                    if(drag.active){
+                                        ble.width = ble.width - mouseX
+                                        ble.x = ble.x + mouseX
+                                        if(ble.width < 30)
+                                            ble.width = 30
+                                    }
+                                }
+                            }
+                        }
+                        */
+
+                        Rectangle {
+                            width: 20
+                            height: 20
+                            radius: 10
+                            color: "steelblue"
+                            anchors.horizontalCenter: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            MouseArea {
+                                anchors.fill: parent
+                                drag{ target: parent; axis: Drag.XAxis }
+                                acceptedButtons: Qt.LeftButton
+                                propagateComposedEvents: false
+
+                                onMouseXChanged: {
+                                    if(drag.active){
+                                        ble.width = ble.width + mouseX
+                                        if(ble.width < 30)
+                                            ble.width = 30
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Item {
                     id: zones
                     anchors.fill: parent
                     
@@ -609,6 +719,78 @@ Item {
                 spacing: 2
 
                 CheckBox { 
+                    id: ble_resizable
+                    text: "Set BLE zone"
+                    visible: sw_ble_zone.checked
+
+                    onClicked: {
+                        if (checked) {
+                            ble_resizer.visible = true
+                        } else {
+                            ble_resizer.visible = false
+                            DigiKeyFromLog.ble.radius = ble.radius
+                            DigiKeyFromLog.ble.x = ble.x - canvas.width/2 + ble.radius
+                            DigiKeyFromLog.ble.y = ble.y - canvas.height/2 + ble.radius
+                            DigiKeyFromLog.save_ble_zone()
+                        }
+                    }
+                }
+
+                Row {
+                    visible: ble_resizable.checked
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 100
+                        text: "BLE X (cm):"
+                    }
+                    TextField {
+                        width: 50
+                        height: 30
+                        text:  ble.x.toFixed(0) - canvas.width/2 + ble.radius
+
+                        onEditingFinished: {
+                            ble.x = parseInt(text) + canvas.width/2 - ble.radius
+                        }
+                    }
+                }
+
+                Row {
+                    visible: ble_resizable.checked
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 100
+                        text: "BLE Y (cm):"
+                    }
+                    TextField {
+                        width: 50
+                        height: 30
+                        text:  ble.y.toFixed(0) - canvas.height/2 + ble.radius
+
+                        onEditingFinished: {
+                            ble.y = parseInt(text) + canvas.height/2 - ble.radius
+                        }
+                    }
+                }
+
+                Row {
+                    visible: ble_resizable.checked
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 100
+                        text: "BLE Radius (cm):"
+                    }
+                    TextField {
+                        width: 50
+                        height: 30
+                        text:  (ble.width/2).toFixed(0)
+
+                        onEditingFinished: {
+                            ble.width = parseInt(text)*2
+                        }
+                    }
+                }
+
+                CheckBox { 
                     id: car_resizable
                     text: "Set Car location"
 
@@ -711,6 +893,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 20
+                visible: !car_resizable.checked && !ble_resizable.checked
 
                 Button {
                     text: DigiKeyFromLog.isAutoplay ? "Manual Navigation" : "Autoplay"
@@ -1057,11 +1240,11 @@ Item {
                                     if (msg != "")
                                         msg += "<br>"
                                     msg += "A" + (i+1) + ": "
-                                    msg += "F = <font color='green' size='+1'>" + DigiKeyFromLog.currentLocation.performance[i].RSSI.toFixed(0) + " dBm</font>,  "
-                                    msg += "Ei = <font color='green' size='+1'>" + DigiKeyFromLog.currentLocation.performance[i].SNR + "</font>,  "
-                                    msg += "Fi = <font color='green' size='+1'>" + DigiKeyFromLog.currentLocation.performance[i].NEV + "</font>,  "
-                                    msg += "Mi = <font color='green' size='+1'>" + DigiKeyFromLog.currentLocation.performance[i].NER + "</font>,  "
-                                    msg += "T = <font color='green' size='+1'>" + DigiKeyFromLog.currentLocation.performance[i].PER.toFixed(0) + " dBm</font>"
+                                    msg += "F = <font color='green'>" + DigiKeyFromLog.currentLocation.performance[i].RSSI.toFixed(0) + " dBm</font>,  "
+                                    msg += "M = <font color='green'>" + DigiKeyFromLog.currentLocation.performance[i].MPWR.toFixed(0) + " dBm</font>,  "
+                                    msg += "Fi = <font color='green'>" + DigiKeyFromLog.currentLocation.performance[i].NEV + "</font>,  "
+                                    msg += "Mi = <font color='green'>" + DigiKeyFromLog.currentLocation.performance[i].NER + "</font>,  "
+                                    msg += "T = <font color='green'>" + DigiKeyFromLog.currentLocation.performance[i].PER.toFixed(0) + " dBm</font>"
                                 }
                             }
 
@@ -1072,7 +1255,7 @@ Item {
                     // Header: BLE info
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 30
+                        Layout.preferredHeight: 50
                         color: "#E6E9ED"
 
                         RowLayout {
@@ -1123,6 +1306,7 @@ Item {
                                 Layout.fillWidth: true
                             }
 
+                            /*
                             Text {
                                 height: parent.height
                                 verticalAlignment: Text.AlignVCenter
@@ -1140,6 +1324,22 @@ Item {
                                 font.pointSize: 12
                                 text: DigiKeyFromLog.ble.rssi
                             }
+                            */
+
+                            Text {
+                                height: parent.height
+                                verticalAlignment: Text.AlignVCenter
+                                leftPadding: 5
+                                color: "blue"
+                                font.pointSize: 10
+                                text: "BLE Zone:"
+                            }
+
+                            Switch {
+                                id: sw_ble_zone
+                                scale: 0.5
+                                checked: true
+                            }
 
                             Item {
                                 Layout.fillWidth: true
@@ -1154,15 +1354,32 @@ Item {
 
                         RowLayout {
                             anchors.fill: parent
+                            
+                            Item {
+                                Layout.fillWidth: true
+                            }
 
                             Text {
-                                Layout.preferredWidth: 20
                                 height: parent.height
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: 5
-                                text: "Button count:"
+                                text: "<font color='blue'>RSSI (dBm)</font><br><font color='blue' size='+2'>" + DigiKeyFromLog.ble.rssi + "</font>"
                             }
+
+                            Item {
+                                Layout.fillWidth: true
+                            }
+
                             Text {
+                                //Layout.preferredWidth: 20
+                                height: parent.height
+                                verticalAlignment: Text.AlignVCenter
+                                leftPadding: 5
+                                text: "Button count:<br><font color='blue' size='+2'>&nbsp;</font>"
+                            }
+
+                            Text {
+                                Layout.preferredWidth: 50
                                 height: parent.height
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: 5
@@ -1170,6 +1387,7 @@ Item {
                             }
 
                             Text {
+                                Layout.preferredWidth: 50
                                 height: parent.height
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: 5
@@ -1177,10 +1395,15 @@ Item {
                             }
 
                             Text {
+                                Layout.preferredWidth: 50
                                 height: parent.height
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: 5
                                 text: "Engine<br><font color='blue' size='+2'>" + DigiKeyFromLog.ble.engineCount + "</font>"
+                            }
+
+                            Item {
+                                Layout.fillWidth: true
                             }
                         }
                     }

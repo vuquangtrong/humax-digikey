@@ -1,6 +1,11 @@
 from PySide2 import QtCore
 from PySide2.QtCore import QObject, Property, Signal, Slot
 
+
+from configparser import ConfigParser
+
+BLE_CONFIG_FILE= "ui/ble.ini"
+
 class BLE(QObject):
 
     ### SIGNALS
@@ -16,6 +21,47 @@ class BLE(QObject):
         self.__trunk_count = 0
         self.__engine_count = 0
 
+        self.__config_file = ConfigParser()
+        self.__radius = 500
+        self.__x = 0
+        self.__y = 0
+
+        self.read_config()
+
+    def read_config(self):
+        self.__config_file.read(BLE_CONFIG_FILE)
+        if 'BLE' in self.__config_file:
+            configs = self.__config_file['BLE']
+
+            try:
+                w = int(configs.get("radius", 1000))
+                self.set_radius(w)
+            except Exception as ex:
+                print(ex)
+
+            try:
+                x = int(configs.get("x", 460))
+                self.set_x(x)
+            except Exception as ex:
+                print(ex)
+            
+            try:
+                y = int(configs.get("y", 460))
+                self.set_y(y)
+            except Exception as ex:
+                print(ex)
+
+    def save_config(self):
+        self.__config_file.read(BLE_CONFIG_FILE)
+        if not 'BLE' in self.__config_file:
+            self.__config_file.add_section('BLE')
+        
+        self.__config_file['BLE']['radius'] = str(self.__radius)
+        self.__config_file['BLE']['x'] = str(self.__x)
+        self.__config_file['BLE']['y'] = str(self.__y)
+
+        with open(BLE_CONFIG_FILE, "w") as config_file:
+            self.__config_file.write(config_file)
 
     def get_status(self):
         #print("get_status", self.__status)
@@ -76,10 +122,42 @@ class BLE(QObject):
             #print("set_engine_count", self.__engine_count)
             self.updated.emit()
 
+    def get_radius(self):
+        #print("get_radius", self.__radius)
+        return self.__radius
 
+    def set_radius(self, value):
+        if value != self.__radius:
+            self.__radius = value
+            #print("set_radius", self.__radius)
+            self.updated.emit()
+    
+    def get_x(self):
+        #print("get_x", self.__x)
+        return self.__x
+
+    def set_x(self, value):
+        if value != self.__x:
+            self.__x = value
+            #print("set_x", self.__x)
+            self.updated.emit()
+    
+    def get_y(self):
+        #print("get_y", self.__y)
+        return self.__y
+
+    def set_y(self, value):
+        if value != self.__y:
+            self.__y = value
+            #print("set_y", self.__y)
+            self.updated.emit()
+    
     ## PROPERTIES
     status = Property(int, fget=get_status, fset=set_status, notify=updated)
     rssi = Property(int, fget=get_rssi, fset=set_rssi, notify=updated)
     doorCount = Property(int, fget=get_door_count, fset=set_door_count, notify=updated)
     trunkCount = Property(int, fget=get_trunk_count, fset=set_trunk_count, notify=updated)
     engineCount = Property(int, fget=get_engine_count, fset=set_engine_count, notify=updated)
+    radius = Property(int, fget=get_radius, fset=set_radius, notify=updated)
+    x = Property(int, fget=get_x, fset=set_x, notify=updated)
+    y = Property(int, fget=get_y, fset=set_y, notify=updated)

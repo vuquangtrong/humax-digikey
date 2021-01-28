@@ -11,6 +11,7 @@ Window {
     width: 1920
     height: 1080
 
+    /*
     TabBar {
         id: tabBar
         width: parent.width
@@ -35,5 +36,10 @@ Window {
 
         MainView {
         }
+    }
+    */
+
+    MainView {
+        anchors.fill: parent
     }
 }
