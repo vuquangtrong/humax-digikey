@@ -25,6 +25,7 @@ class BLE(QObject):
         self.__radius = 500
         self.__x = 0
         self.__y = 0
+        self.__isShowingZone = False
 
         self.read_config()
 
@@ -152,6 +153,16 @@ class BLE(QObject):
             #print("set_y", self.__y)
             self.updated.emit()
     
+    def get_zone_status(self):
+        #print("get_zone_status", self.__isShowingZone)
+        return self.__isShowingZone
+
+    def set_zone_status(self, value):
+        if value != self.__isShowingZone:
+            self.__isShowingZone = value
+            #print("set_zone_status", self.__isShowingZone)
+            self.updated.emit()
+    
     ## PROPERTIES
     status = Property(int, fget=get_status, fset=set_status, notify=updated)
     rssi = Property(int, fget=get_rssi, fset=set_rssi, notify=updated)
@@ -161,3 +172,4 @@ class BLE(QObject):
     radius = Property(int, fget=get_radius, fset=set_radius, notify=updated)
     x = Property(int, fget=get_x, fset=set_x, notify=updated)
     y = Property(int, fget=get_y, fset=set_y, notify=updated)
+    isShowingZone = Property(bool, fget=get_zone_status, fset=set_zone_status, notify=updated)

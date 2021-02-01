@@ -17,8 +17,8 @@ class Car(QObject):
         self.__config_file = ConfigParser()
         self.__width = 180
         self.__height = 460
-        self.__x = 180/2
-        self.__y = 460/2
+        self.__x = 1460
+        self.__y = 1080
 
         self.read_config()
 

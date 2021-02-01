@@ -1306,7 +1306,7 @@ Item {
                                 Layout.fillWidth: true
                             }
 
-                            /*
+                            
                             Text {
                                 height: parent.height
                                 verticalAlignment: Text.AlignVCenter
@@ -1323,9 +1323,21 @@ Item {
                                 font.bold: true
                                 font.pointSize: 12
                                 text: DigiKeyFromLog.ble.rssi
+                                color: {
+                                    var status = DigiKeyFromLog.ble.status
+                                    if ( status == 1) {
+                                        return "red"
+                                    } else if (status == 2) {
+                                        return "orange"
+                                    } else if (status == 3) {
+                                        return "green"
+                                    } else {
+                                        return "black"
+                                    }
+                                }
                             }
-                            */
-
+                            
+                            /*
                             Text {
                                 height: parent.height
                                 verticalAlignment: Text.AlignVCenter
@@ -1334,13 +1346,15 @@ Item {
                                 font.pointSize: 10
                                 text: "BLE Zone:"
                             }
+                            */
 
                             Switch {
                                 id: sw_ble_zone
                                 scale: 0.5
-                                checked: true
+                                checked: DigiKeyFromLog.isShowingBleZone
+                                visible: false
                             }
-
+                            
                             Item {
                                 Layout.fillWidth: true
                             }
@@ -1354,7 +1368,7 @@ Item {
 
                         RowLayout {
                             anchors.fill: parent
-                            
+                            /*
                             Item {
                                 Layout.fillWidth: true
                             }
@@ -1365,6 +1379,7 @@ Item {
                                 leftPadding: 5
                                 text: "<font color='blue'>RSSI (dBm)</font><br><font color='blue' size='+2'>" + DigiKeyFromLog.ble.rssi + "</font>"
                             }
+                            */
 
                             Item {
                                 Layout.fillWidth: true

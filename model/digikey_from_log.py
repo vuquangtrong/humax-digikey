@@ -371,6 +371,14 @@ class DigiKeyFromLog(QObject):
             self.__is_ranging = value
             self.isRangingChanged.emit()
     
+    def get_ble_zone_status(self):
+        return self.__ble.isShowingZone
+
+    def set_ble_zone_status(self, value):
+        if value != self.__ble.isShowingZone:
+            self.__ble.isShowingZone = value
+            self.bleUpdated.emit()
+    
     ### SLOTS
     @Slot()
     def save_car_location(self):
@@ -407,7 +415,7 @@ class DigiKeyFromLog(QObject):
         else:
             ### STOP RANGING ENGINE ###
             self.__ui_range.stopRanging()
-    
+
     ### PROPERTIES
     car = Property(Car, fget=get_car, notify=carUpdated)
     ble = Property(BLE, fget=get_ble, notify=bleUpdated)
@@ -421,3 +429,4 @@ class DigiKeyFromLog(QObject):
     isRanging = Property(bool, fget=get_ranging_status, notify=isRangingChanged)
     isReadingLog = Property(bool, fget=get_reading_log_status, notify=isReadingLogChanged)
     isAutoplay = Property(bool, fget=get_autoplay_status, fset=set_autoplay_status, notify=isAutoplayChanged)
+    isShowingBleZone = Property(bool, fget=get_ble_zone_status, fset=set_ble_zone_status, notify=bleUpdated)

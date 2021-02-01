@@ -29,6 +29,9 @@ def main():
     context = qml_engine.rootContext()
     context.setContextProperty("DigiKeyFromLog", digikey_from_log)
 
+    # example to use APIs
+    #digikey_from_log.set_ble_zone_status(True)
+
     # Start UI
     qml_engine.load(QtCore.QUrl.fromLocalFile("ui/__main.qml"))
     if not qml_engine.rootObjects():
