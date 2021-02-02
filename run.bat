@@ -1,1 +1,1 @@
-.venv\Scripts\activate.bat
+python PyDigiKey2.py

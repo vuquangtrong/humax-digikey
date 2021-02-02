@@ -259,8 +259,8 @@ class DigiKeyFromLog(QObject):
         if self.__is_autoplay:
             # autoplay will go to next location
             self.show_next_location()
-        else:
-            self.currentLocationChanged.emit()
+        #else:
+        #    self.currentLocationChanged.emit()
     
     def read_ble(self):
         self.__uwb_ble_info_file.read(UWB_BLE_INFO_FILE)

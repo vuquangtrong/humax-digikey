@@ -2,6 +2,7 @@ import QtQuick 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Controls 2.12
 import QtQuick.Shapes 1.12
+import QtGraphicalEffects 1.12 as QtGraphicalEffects
 import Location 1.0
 import Anchor 1.0
 import BLE 1.0
@@ -79,9 +80,17 @@ Item {
                     }
 
                     Image {
+                        id: image_car
                         anchors.fill: parent
                         source: "car.png"
                         opacity: car_resizer.visible ? 0.5: 0.25
+                    }
+
+                    QtGraphicalEffects.ColorOverlay {
+                        anchors.fill: image_car
+                        source: image_car
+                        color: "#4000ff00"
+                        visible: DigiKeyFromLog.currentLocation.zone == 0
                     }
 
                     Rectangle {
@@ -432,8 +441,8 @@ Item {
                     id: zones
                     anchors.fill: parent
                     
-                    property int offsetX: 40 // cm
-                    property int offsetY: 40 // cm
+                    property int offsetX: 0 // cm
+                    property int offsetY: 0 // cm
                     property int distanceNear: 120 // cm
                     property int distanceFar: 300 // cm
 
@@ -444,14 +453,13 @@ Item {
 
                     Shape {
                         opacity: 0.4
-                        
+
+                        /*                        
                         ShapePath {
                             id: zone_0_center
 
-                            /*  
-                                there is an issue that does not trigger binding if using transparent color in expression ???
-                                use "#01000000" for transparent
-                            */
+                            // there is an issue that does not trigger binding if using transparent color in expression ???
+                            // use "#01000000" for transparent
                             fillColor: DigiKeyFromLog.currentLocation.zone == 0 ? "blue" : "#01000000"
                             strokeColor: "transparent"
                             startX: zones.anchorA[0]
@@ -472,6 +480,7 @@ Item {
                                 y: zones.anchorC[1]
                             }
                         }
+                        */
 
                         Zone {
                             id: zone_1_front_near
@@ -627,6 +636,39 @@ Item {
                     }
                 }
 
+                // Show history lines
+                Shape {
+                    anchors.fill: parent
+                    visible: show_trace.checked
+
+                    ShapePath {
+                        fillColor: "transparent"
+                        strokeColor: "darkred"
+                        strokeWidth: 2 / canvas.scaleFactor
+
+                        PathSvg { 
+                            id: historyLocation; 
+                            path: ""
+                        }
+                    }
+
+                    Connections {
+                        target: DigiKeyFromLog
+                        function onCurrentLocationChanged() {
+                            // move to the first point
+                            var paths = "M %1 %2 ".arg(canvas.width/2 + 100*DigiKeyFromLog.locations[0].coordinate[0])
+                                                  .arg(canvas.height/2 - 100*DigiKeyFromLog.locations[0].coordinate[1])
+                            // draw Line to next points
+                            for(var i=1; i< DigiKeyFromLog.currentLocationIndex; i++) {
+                                paths += "L %1 %2 ".arg(canvas.width/2 + 100*DigiKeyFromLog.locations[i].coordinate[0])
+                                                  .arg(canvas.height/2 - 100*DigiKeyFromLog.locations[i].coordinate[1]);
+                            }
+                            historyLocation.path = paths
+                            console.log(paths)
+                        }
+                    }
+                }
+
                 // Current location 
                 Rectangle {
                     id: current_location
@@ -717,6 +759,12 @@ Item {
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 5
                 spacing: 2
+
+                Switch {
+                    id: show_trace
+                    text: "Show Trace"
+                    checked: true
+                }
 
                 CheckBox { 
                     id: ble_resizable
@@ -957,7 +1005,7 @@ Item {
 
             Rectangle {
                 id: settings
-                Layout.preferredWidth: 400
+                Layout.preferredWidth: 360
                 Layout.fillHeight: true
                 border.color: "#687D91"
 
@@ -993,14 +1041,15 @@ Item {
                     RowLayout {
                         enabled: false
 
-                        Item {
-                            Layout.preferredWidth: 20
-                            Layout.preferredHeight: 30
-                        }
+                        // Item {
+                        //     Layout.preferredWidth: 20
+                        //     Layout.preferredHeight: 30
+                        // }
 
                         Text {
                             Layout.preferredWidth: 30
                             Layout.preferredHeight: 30
+                            leftPadding: 10
                             verticalAlignment: Text.AlignVCenter
                             text: "N"
                         }
@@ -1046,14 +1095,15 @@ Item {
                     RowLayout {
                         enabled: false
 
-                        Item {
-                            Layout.preferredWidth: 20
-                            Layout.preferredHeight: 30
-                        }
+                        // Item {
+                        //     Layout.preferredWidth: 20
+                        //     Layout.preferredHeight: 30
+                        // }
 
                         Text {
                             Layout.preferredWidth: 30
                             Layout.preferredHeight: 30
+                            leftPadding: 10
                             verticalAlignment: Text.AlignVCenter
                             text: "R"
                         }
@@ -1066,7 +1116,7 @@ Item {
                             currentIndex: {
                                 var r = "" + DigiKeyFromLog.params.R
                                 for (var i=0; i<items.length; i++) {
-                                    if (items[i].includes(r)) {
+                                    if (items[i].startsWith(r)) {
                                         return i
                                     }
                                 }
@@ -1093,7 +1143,7 @@ Item {
                             currentIndex: {
                                 var p = "" + DigiKeyFromLog.params.P + " dBm"
                                 for (var i=0; i<items.length; i++) {
-                                    if (items[i].includes(p)) {
+                                    if (items[i].startsWith(p)) {
                                         return i
                                     }
                                 }

@@ -11,6 +11,8 @@ Window {
     width: 1920
     height: 1080
 
+    visibility: Window.Maximized
+
     /*
     TabBar {
         id: tabBar
