@@ -90,7 +90,7 @@ Item {
                         anchors.fill: image_car
                         source: image_car
                         color: "#4000ff00"
-                        visible: DigiKeyFromLog.currentLocation.zone == 0
+                        visible: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.zone == 0) : false
                     }
 
                     Rectangle {
@@ -295,7 +295,7 @@ Item {
                         width: 10 / canvas.scaleFactor
                         height: 10 / canvas.scaleFactor
                         radius: 5 / canvas.scaleFactor
-                        color: DigiKeyFromLog.currentLocation.activatedAnchors[index] ? "red" : "black"
+                        color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.activatedAnchors[index] ? "red" : "black") : "black"
                         x: canvas.translateX(anchor, DigiKeyFromLog.anchors[index].coordinate[0])
                         y: canvas.translateY(anchor, DigiKeyFromLog.anchors[index].coordinate[1])
                         visible: DigiKeyFromLog.anchors[index].isWorking
@@ -304,7 +304,7 @@ Item {
                             id: anchor_name
                             x: parent.width
                             y: parent.height
-                            color: DigiKeyFromLog.currentLocation.activatedAnchors[index] ? "red" : "black"
+                            color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.activatedAnchors[index] ? "red" : "black") : "black"
                             text: "A" + (index+1)
 
                             Text {
@@ -441,9 +441,9 @@ Item {
                     id: zones
                     anchors.fill: parent
                     
-                    property int offsetX: 0 // cm
-                    property int offsetY: 0 // cm
-                    property int distanceNear: 120 // cm
+                    property int offsetX: 10 // cm
+                    property int offsetY: 10 // cm
+                    property int distanceNear: 150 // cm
                     property int distanceFar: 300 // cm
 
                     property var anchorA: [car.x + zones.offsetX, car.y + zones.offsetY]
@@ -490,7 +490,7 @@ Item {
                                 y1: zones.anchorA[1]
                                 x2: zones.anchorA[0]
                                 y2: zones.anchorA[1] - zones.distanceNear
-                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation.zone == 1 ? "green" : "transparent" }
+                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.zone == 1 ? "green" : "transparent") : "transparent" }
                                 GradientStop { position: 1; color: "transparent" }
                             }
                             strokeColor: "transparent"
@@ -509,7 +509,7 @@ Item {
                                 y1: zones.anchorA[1]
                                 x2: zones.anchorA[0]
                                 y2: zones.anchorA[1] - zones.distanceFar
-                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation.zone == 2 ? "yellow" : "transparent" }
+                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.zone == 2 ? "yellow" : "transparent") : "transparent" }
                                 GradientStop { position: 1; color: "transparent" }
                             }
                             strokeColor: "transparent"
@@ -528,7 +528,7 @@ Item {
                                 y1: zones.anchorA[1]
                                 x2: zones.anchorA[0] - zones.distanceNear
                                 y2: zones.anchorA[1]
-                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation.zone == 3 ? "green" : "transparent"}
+                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.zone == 3 ? "green" : "transparent") : "transparent"}
                                 GradientStop { position: 1; color: "transparent" }
                             }
                             strokeColor: "transparent"
@@ -547,7 +547,7 @@ Item {
                                 y1: zones.anchorA[1]
                                 x2: zones.anchorA[0] - zones.distanceFar
                                 y2: zones.anchorA[1]
-                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation.zone == 4 ? "yellow" : "transparent"}
+                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.zone == 4 ? "yellow" : "transparent") : "transparent"}
                                 GradientStop { position: 1; color: "transparent" }
                             }
                             strokeColor: "transparent"
@@ -566,7 +566,7 @@ Item {
                                 y1: zones.anchorC[1]
                                 x2: zones.anchorC[0]
                                 y2: zones.anchorC[1] + zones.distanceNear
-                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation.zone == 5 ? "green" : "transparent" }
+                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.zone == 5 ? "green" : "transparent") : "transparent" }
                                 GradientStop { position: 1; color: "transparent" }
                             }
                             strokeColor: "transparent"
@@ -585,7 +585,7 @@ Item {
                                 y1: zones.anchorC[1]
                                 x2: zones.anchorC[0]
                                 y2: zones.anchorC[1] + zones.distanceFar
-                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation.zone == 6 ? "yellow" : "transparent"}
+                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.zone == 6 ? "yellow" : "transparent") : "transparent"}
                                 GradientStop { position: 1; color: "transparent" }
                             }
                             strokeColor: "transparent"
@@ -604,7 +604,7 @@ Item {
                                 y1: zones.anchorB[1]
                                 x2: zones.anchorB[0] + zones.distanceNear
                                 y2: zones.anchorB[1]
-                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation.zone == 7 ? "green" : "transparent"}
+                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.zone == 7 ? "green" : "transparent") : "transparent"}
                                 GradientStop { position: 1; color: "transparent" }
                             }
                             strokeColor: "transparent"
@@ -623,7 +623,7 @@ Item {
                                 y1: zones.anchorB[1]
                                 x2: zones.anchorB[0] + zones.distanceFar
                                 y2: zones.anchorB[1]
-                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation.zone == 8 ? "yellow" : "transparent"}
+                                GradientStop { position: 0; color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.zone == 8 ? "yellow" : "transparent") : "transparent"}
                                 GradientStop { position: 1; color: "transparent" }
                             }
                             strokeColor: "transparent"
@@ -639,12 +639,13 @@ Item {
                 // Show history lines
                 Shape {
                     anchors.fill: parent
+                    opacity: 0.4
                     visible: show_trace.checked
 
                     ShapePath {
                         fillColor: "transparent"
-                        strokeColor: "darkred"
-                        strokeWidth: 2 / canvas.scaleFactor
+                        strokeColor: "darkblue"
+                        strokeWidth: 1 / canvas.scaleFactor
 
                         PathSvg { 
                             id: historyLocation; 
@@ -655,16 +656,22 @@ Item {
                     Connections {
                         target: DigiKeyFromLog
                         function onCurrentLocationChanged() {
-                            // move to the first point
-                            var paths = "M %1 %2 ".arg(canvas.width/2 + 100*DigiKeyFromLog.locations[0].coordinate[0])
-                                                  .arg(canvas.height/2 - 100*DigiKeyFromLog.locations[0].coordinate[1])
-                            // draw Line to next points
-                            for(var i=1; i< DigiKeyFromLog.currentLocationIndex; i++) {
-                                paths += "L %1 %2 ".arg(canvas.width/2 + 100*DigiKeyFromLog.locations[i].coordinate[0])
-                                                  .arg(canvas.height/2 - 100*DigiKeyFromLog.locations[i].coordinate[1]);
+                            // only show last 10 locations
+                            var start_index = DigiKeyFromLog.currentLocationIndex - 10
+                            if (start_index < 0) {
+                                start_index = 0
                             }
+
+                            // move to the first point
+                            var paths = "M %1 %2 ".arg(canvas.width/2 + 100*DigiKeyFromLog.locations[start_index].coordinate[0])
+                                                .arg(canvas.height/2 - 100*DigiKeyFromLog.locations[start_index].coordinate[1])
+                            // draw Line to next points
+                            for(var i = start_index + 1; i <= DigiKeyFromLog.currentLocationIndex; i++) {
+                                paths += "L %1 %2 ".arg(canvas.width/2 + 100*DigiKeyFromLog.locations[i].coordinate[0])
+                                                .arg(canvas.height/2 - 100*DigiKeyFromLog.locations[i].coordinate[1]);
+                            }
+
                             historyLocation.path = paths
-                            console.log(paths)
                         }
                     }
                 }
@@ -685,7 +692,7 @@ Item {
                         y: parent.height
                         color: "red"
                         font.pointSize: canvas.scaleFactor >= 1 ? 12 : 12 / canvas.scaleFactor
-                        text: "#" + (DigiKeyFromLog.currentLocationIndex)
+                        text: "#" + (DigiKeyFromLog.currentLocationIndex + 1)
 
                         Text {
                             x: 0
@@ -933,7 +940,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 5
-                text: "Showing location #" + DigiKeyFromLog.currentLocationIndex + " of " + DigiKeyFromLog.totalLocations
+                text: "Showing location #" + (DigiKeyFromLog.currentLocationIndex + 1) + " of " + DigiKeyFromLog.totalLocations
             }
 
             Row {
@@ -1005,7 +1012,7 @@ Item {
 
             Rectangle {
                 id: settings
-                Layout.preferredWidth: 360
+                Layout.preferredWidth: 400
                 Layout.fillHeight: true
                 border.color: "#687D91"
 
@@ -1041,15 +1048,15 @@ Item {
                     RowLayout {
                         enabled: false
 
-                        // Item {
-                        //     Layout.preferredWidth: 20
-                        //     Layout.preferredHeight: 30
-                        // }
+                        Item {
+                            Layout.preferredWidth: 20
+                            Layout.preferredHeight: 30
+                        }
 
                         Text {
                             Layout.preferredWidth: 30
                             Layout.preferredHeight: 30
-                            leftPadding: 10
+                            // leftPadding: 10
                             verticalAlignment: Text.AlignVCenter
                             text: "N"
                         }
@@ -1095,15 +1102,15 @@ Item {
                     RowLayout {
                         enabled: false
 
-                        // Item {
-                        //     Layout.preferredWidth: 20
-                        //     Layout.preferredHeight: 30
-                        // }
+                        Item {
+                            Layout.preferredWidth: 20
+                            Layout.preferredHeight: 30
+                        }
 
                         Text {
                             Layout.preferredWidth: 30
                             Layout.preferredHeight: 30
-                            leftPadding: 10
+                            // leftPadding: 10
                             verticalAlignment: Text.AlignVCenter
                             text: "R"
                         }
@@ -1270,7 +1277,7 @@ Item {
                             Text {
                                 height: parent.height
                                 verticalAlignment: Text.AlignVCenter
-                                text: "at location " + DigiKeyFromLog.currentLocationIndex
+                                text: "at location " + (DigiKeyFromLog.currentLocationIndex + 1)
                             }
 
                             Item {
@@ -1504,7 +1511,7 @@ Item {
                         Layout.fillHeight: true
                         ScrollBar.vertical: ScrollBar {}
                         clip: true
-                        currentIndex: DigiKeyFromLog.currentLocationIndex - 1 // remove 'loop 0'          
+                        currentIndex: DigiKeyFromLog.currentLocationIndex
                         model: DigiKeyFromLog.locations
                         delegate: Rectangle {
                             width: location_list.width
@@ -1536,7 +1543,7 @@ Item {
                                 anchors.fill: parent
                                 onClicked: {
                                     DigiKeyFromLog.isAutoplay = false
-                                    DigiKeyFromLog.currentLocationIndex = index + 1
+                                    DigiKeyFromLog.currentLocationIndex = index
                                 }
                             }
                         }

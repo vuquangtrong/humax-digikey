@@ -1,3 +1,5 @@
+import copy
+
 from PySide2 import QtCore
 from PySide2.QtCore import QObject, Property, Signal, Slot
 
@@ -8,14 +10,22 @@ class Performance(QObject):
 
 
     ### METHODS
-    def __init__(self, parent=None, x=-1000.0, y=-1000.0):
+    def __init__(self, parent=None, x=-1000.0, y=-1000.0, origin=None):
         super().__init__(parent)
-        self.__RSSI = 0
-        self.__SNR = 0
-        self.__NEV = 0
-        self.__NER = 0
-        self.__PER = 0
-        self.__MPWR = 0
+        if origin is None:
+            self.__RSSI = 0
+            self.__SNR = 0
+            self.__NEV = 0
+            self.__NER = 0
+            self.__PER = 0
+            self.__MPWR = 0
+        else:
+            self.__RSSI = copy.deepcopy(origin.__RSSI)
+            self.__SNR = copy.deepcopy(origin.__SNR)
+            self.__NEV = copy.deepcopy(origin.__NEV)
+            self.__NER = copy.deepcopy(origin.__NER)
+            self.__PER = copy.deepcopy(origin.__PER)
+            self.__MPWR = copy.deepcopy(origin.__MPWR)
 
 
     def get_RSSI(self):

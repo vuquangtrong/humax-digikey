@@ -1,3 +1,5 @@
+import copy
+
 from PySide2 import QtCore
 from PySide2.QtCore import QObject, Property, Signal, Slot
 
@@ -10,14 +12,37 @@ class Location(QObject):
 
 
     ### METHODS
-    def __init__(self, parent=None, x=-1000.0, y=-1000.0, z=0):
+    def __init__(self, parent=None, x=-1000.0, y=-1000.0, z=-1000.0, origin=None):
         super().__init__(parent)
-        self.__coordinate = [x, y, z]
-        self.__distance = [0.0 for _ in range(8)]  # D1 ~ D8
-        self.__activated_anchors = [False for _ in range(8)] # A1 ~ A8
-        self.__performance = [Performance() for _ in range(8)] # A1 ~ A8
-        self.__zone = -1
 
+        if origin is None:
+            # create a new instance
+            self.__name = ""
+            self.__coordinate = [x, y, z]
+            self.__distance = [0.0 for _ in range(8)]  # D1 ~ D8
+            self.__activated_anchors = [False for _ in range(8)] # A1 ~ A8
+            self.__performance = [Performance() for _ in range(8)] # A1 ~ A8
+            self.__zone = -1
+        else:
+            # do deep copy (as copy constructor in C++)
+            self.__name = copy.deepcopy(origin.__name)
+            self.__coordinate = copy.deepcopy(origin.__coordinate)
+            self.__distance = copy.deepcopy(origin.__distance)
+            self.__activated_anchors = copy.deepcopy(origin.__activated_anchors)
+            self.__performance = [Performance(origin=p) for p in origin.__performance]
+            self.__zone = copy.deepcopy(origin.__zone)
+
+
+    def get_name(self):
+        #print("get_name", self.__name)
+        return self.__name
+
+
+    def set_name(self, value):
+        if value != self.__name:
+            self.__name = value
+            #print("set_name", self.__name)
+            self.updated.emit()
 
     def get_coordinate(self):
         #print("get_coordinate", self.__coordinate)
@@ -75,6 +100,7 @@ class Location(QObject):
             self.updated.emit()
 
     ## PROPERTIES
+    name = Property(str, fget=get_name, fset=set_name, notify=updated)
     coordinate = Property('QVariantList', fget=get_coordinate, fset=set_coordinate, notify=updated)
     distance = Property('QVariantList', fget=get_distance, fset=set_distance, notify=updated)
     activatedAnchors = Property('QVariantList', fget=get_activated_anchors, fset=set_activated_anchors, notify=updated)

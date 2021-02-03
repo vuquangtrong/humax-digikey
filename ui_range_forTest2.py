@@ -7,7 +7,9 @@ from configparser import ConfigParser
 LOG_FILE = "log/locating_data.txt"
 SAMPLE_LOG_FILE = "log/sample_location.txt"
 
-
+"""
+This test class simulate the action of writing a log file of the real ranging class
+"""
 class ui_range:
     def __init__(self):
         self.__stop_event = threading.Event()
@@ -22,7 +24,7 @@ class ui_range:
         self.__log_count = 0
 
         # open and delete its content
-        self.__config_file = open(LOG_FILE, "w")
+        #self.__config_file = open(LOG_FILE, "w")
     
     def startRanging(self):
         print("Start Ranging")
@@ -45,13 +47,19 @@ class ui_range:
         for item in self.__sample_items:
             self.__log_data.set(section, item[0], item[1])
 
-        # modify some of them
+        # modify some field
         self.__log_data[section]['keylocation'] = str([random.uniform(-5, 5), random.uniform(-5, 5), 0])
+        self.__log_data[section]['uwbZone'] = str(random.randint(0, 8))
 
     def report(self):
         while not self.__stop_event.is_set():
             time_start = time.time()
             time.sleep(0.3)
             self.make_section()
-            self.__log_data.write(self.__config_file)
+            # open file and write all sections
+            """ 
+            rewrite all section may need more time than appending
+            """
+            with open(LOG_FILE, "w+") as config_file:
+                self.__log_data.write(config_file)
             print(f"Reporting {self.__log_count}: took {time.time() - time_start} seconds")
