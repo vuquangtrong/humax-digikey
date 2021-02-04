@@ -13,7 +13,7 @@ This test class simulate the action of writing a log file of the real ranging cl
 class ui_range:
     def __init__(self):
         self.__stop_event = threading.Event()
-        self.__stop_event.clear()
+        self.__stop_event.set() # stop by default
 
         self.__report_thread = None
         self.__sample_data = ConfigParser()

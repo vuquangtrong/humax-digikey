@@ -1224,6 +1224,7 @@ Item {
                                     height: parent.height
                                     verticalAlignment: Text.AlignVCenter
                                     text: "A" + (index + 1)
+                                    color: DigiKeyFromLog.currentLocation ? (DigiKeyFromLog.currentLocation.activatedAnchors[index] ? "red" : "black") : "black"
                                 }
 
                                 TextField {

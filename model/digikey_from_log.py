@@ -14,7 +14,7 @@ from PySide2.QtQml import qmlRegisterType
 
 from configparser import ConfigParser
 from ast import literal_eval
-from pygtail import Pygtail
+#from pygtail import Pygtail
 
 from .location import Location
 from .anchor import Anchor
@@ -27,7 +27,9 @@ from .car import Car
 ###############################
 # CHANGE BELOW LIB ON REAL HW #
 ###############################
-from ui_range_forTest2 import ui_range
+#from ui_range_forTest2 import ui_range
+from clsForUI import clsShareData #, clsForUI
+from clsForUI_forTest import clsForUI # remove this line and use clsForUI in above line
 
 ###############################
 # Read below log files
@@ -36,8 +38,10 @@ UWB_CONFIG_FILE= "log/uwbconfig.cfg"
 UWB_LOCATION_LOG_FILE = "log/locating_data.txt"
 UWB_BLE_INFO_FILE = "log/ble_info.txt"
 
+FROM_LOG_FILE = 0
+FROM_CLS_FOR_UI_QUEUE = 1
 UPDATE_INTERVAL = 300 # ms
-QUEUE_SIZE = 1000
+QUEUE_SIZE = 10000
 
 class DigiKeyFromLog(QObject):
 
@@ -74,8 +78,6 @@ class DigiKeyFromLog(QObject):
         self.__locations = []
         self.__location_current_index = -1
 
-        self.__ui_range = ui_range()
-
         self.__is_ranging = False
         self.__is_reading_log = False
         self.__is_autoplay = True
@@ -89,15 +91,22 @@ class DigiKeyFromLog(QObject):
         self.__update_timer.start(UPDATE_INTERVAL)
         
         self.__stop_event = threading.Event()
-        self.__stop_event.clear()
+        self.__stop_event.set() # stop by default
         self.__reading_log_thread = None
         self.__new_location = None
-        self.__location_queue = queue.Queue(QUEUE_SIZE)
         self.__time_start = None
+
+        # read log from log file or from external queue?
+        self.__location_queue = queue.Queue(QUEUE_SIZE)
+        #self.__log_source = FROM_LOG_FILE
+        self.__log_source = FROM_CLS_FOR_UI_QUEUE
+
+        #self.__ui_range = ui_range()
+        self.__clsForUI = clsForUI(ShareQueue=self.__location_queue, digikey_log=self)
 
         # remove last session
         try:
-            for f in glob("log\*.offset"):
+            for f in glob(r"log\*.offset"):
                 os.remove(f)
         except OSError as _:
             pass
@@ -165,179 +174,211 @@ class DigiKeyFromLog(QObject):
                 except Exception as _:
                     pass 
     
-    def read_log(self):
-        # try to read the file, line by line
-        while True:
-            if self.__stop_event.is_set():
-                return
+    # def read_log(self):
+    #     # try to read the file, line by line
+    #     while True:
+    #         if self.__stop_event.is_set():
+    #             return
             
-            for line in Pygtail(UWB_LOCATION_LOG_FILE, every_n=10):
-                if self.__stop_event.is_set():
-                    return
+    #         for line in Pygtail(UWB_LOCATION_LOG_FILE, every_n=10):
+    #             if self.__stop_event.is_set():
+    #                 return
                 
-                #time_start = time.time()
-                #print(line)
+    #             #time_start = time.time()
+    #             #print(line)
 
-                # find the start of a section
-                if line.startswith("[loop"):
-                    section_name = line.replace("[","").replace("]","").replace("\n","").replace("\r","")
-                    if True:
-                        self.__new_section_name = section_name
-                        self.__new_location = Location()
-                        self.__new_location.name = section_name
-                        for anchor in self.__new_location.activatedAnchors:
-                            anchor = False
+    #             # find the start of a section
+    #             if line.startswith("[loop"):
+    #                 section_name = line.replace("[","").replace("]","").replace("\n","").replace("\r","")
+    #                 if True:
+    #                     self.__new_section_name = section_name
+    #                     self.__new_location = Location()
+    #                     self.__new_location.name = section_name
+    #                     for anchor in self.__new_location.activatedAnchors:
+    #                         anchor = False
                 
-                if self.__new_location:
-                    # read location
-                    if line.startswith("keylocation"):
-                        try:
-                            keylocation = literal_eval(line.replace("keylocation = ",""))
-                            self.__new_location.coordinate = keylocation
-                            #print("keylocation", keylocation)
-                        except Exception as ex:
-                            print(ex)
+    #             if self.__new_location:
+    #                 # read location
+    #                 if line.startswith("keylocation"):
+    #                     try:
+    #                         keylocation = literal_eval(line.replace("keylocation = ",""))
+    #                         self.__new_location.coordinate = keylocation
+    #                         #print("keylocation", keylocation)
+    #                     except Exception as ex:
+    #                         print(ex)
 
-                        continue
+    #                     continue
 
-                    # read distance
-                    x = re.search(r"d(\d+)_distance = (.*)", line)
-                    if x:
-                        try:
-                            i = int(x.group(1))
-                            d = float(x.group(2))
-                            #print(f"d{i}_distance =", d)
-                            self.__new_location.distance[i-1] = -1.0 # 
-                            if d >= 0 and d <= 20.0:
-                                self.__new_location.distance[i-1] = d
-                        except Exception as ex:
-                            print(ex)
+    #                 # read distance
+    #                 x = re.search(r"d(\d+)_distance = (.*)", line)
+    #                 if x:
+    #                     try:
+    #                         i = int(x.group(1))
+    #                         d = float(x.group(2))
+    #                         #print(f"d{i}_distance =", d)
+    #                         self.__new_location.distance[i-1] = -1.0 # 
+    #                         if d >= 0 and d <= 20.0:
+    #                             self.__new_location.distance[i-1] = d
+    #                     except Exception as ex:
+    #                         print(ex)
 
-                        continue
+    #                     continue
 
-                    # read activated anchors
+    #                 # read activated anchors
                     
                     
-                    if line.startswith("cal_devices"):
-                        try:
-                            cal_devices = literal_eval(line.replace("cal_devices = ",""))
-                            #print("cal_devices", cal_devices)
-                            for device in cal_devices:
-                                self.__new_location.activatedAnchors[int(device)-1] = True
-                        except Exception as ex:
-                            print(ex)
+    #                 if line.startswith("cal_devices"):
+    #                     try:
+    #                         cal_devices = literal_eval(line.replace("cal_devices = ",""))
+    #                         #print("cal_devices", cal_devices)
+    #                         for device in cal_devices:
+    #                             self.__new_location.activatedAnchors[int(device)-1] = True
+    #                     except Exception as ex:
+    #                         print(ex)
                         
-                        continue
+    #                     continue
                     
-                    # read performance
-                    x = re.search(r"d(\d+)_fp_pwr = (.*)", line)
-                    if x:
-                        try:
-                            i = int(x.group(1))
-                            d = int(x.group(2))
-                            #print(f"d{i}_fp_pwr =", d)
-                            self.__new_location.performance[i-1].RSSI = d
-                        except Exception as ex:
-                            print(ex)
+    #                 # read performance
+    #                 x = re.search(r"d(\d+)_fp_pwr = (.*)", line)
+    #                 if x:
+    #                     try:
+    #                         i = int(x.group(1))
+    #                         d = int(x.group(2))
+    #                         #print(f"d{i}_fp_pwr =", d)
+    #                         self.__new_location.performance[i-1].RSSI = d
+    #                     except Exception as ex:
+    #                         print(ex)
                         
-                        continue
+    #                     continue
                     
-                    x = re.search(r"d(\d+)_edge_inx = (.*)", line)
-                    if x:
-                        try:
-                            i = int(x.group(1))
-                            d = int(x.group(2))
-                            #print(f"d{i}_edge_inx =", d)
-                            self.__new_location.performance[i-1].SNR = d
-                        except Exception as ex:
-                            print(ex)
+    #                 x = re.search(r"d(\d+)_edge_inx = (.*)", line)
+    #                 if x:
+    #                     try:
+    #                         i = int(x.group(1))
+    #                         d = int(x.group(2))
+    #                         #print(f"d{i}_edge_inx =", d)
+    #                         self.__new_location.performance[i-1].SNR = d
+    #                     except Exception as ex:
+    #                         print(ex)
                         
-                        continue
+    #                     continue
 
-                    x = re.search(r"d(\d+)_fp_inx = (.*)", line)
-                    if x:
-                        try:
-                            i = int(x.group(1))
-                            d = int(x.group(2))
-                            #print(f"d{i}_fp_inx =", d)
-                            self.__new_location.performance[i-1].NEV = d
-                        except Exception as ex:
-                            print(ex)
+    #                 x = re.search(r"d(\d+)_fp_inx = (.*)", line)
+    #                 if x:
+    #                     try:
+    #                         i = int(x.group(1))
+    #                         d = int(x.group(2))
+    #                         #print(f"d{i}_fp_inx =", d)
+    #                         self.__new_location.performance[i-1].NEV = d
+    #                     except Exception as ex:
+    #                         print(ex)
                         
-                        continue
+    #                     continue
 
-                    x = re.search(r"d(\d+)_maxtapinx = (.*)", line)
-                    if x:
-                        try:
-                            i = int(x.group(1))
-                            d = int(x.group(2))
-                            #print(f"d{i}_maxtapinx =", d)
-                            self.__new_location.performance[i-1].NER = d
-                        except Exception as ex:
-                            print(ex)
+    #                 x = re.search(r"d(\d+)_maxtapinx = (.*)", line)
+    #                 if x:
+    #                     try:
+    #                         i = int(x.group(1))
+    #                         d = int(x.group(2))
+    #                         #print(f"d{i}_maxtapinx =", d)
+    #                         self.__new_location.performance[i-1].NER = d
+    #                     except Exception as ex:
+    #                         print(ex)
                         
-                        continue
+    #                     continue
 
-                    x = re.search(r"d(\d+)_detect_pwr = (.*)", line)
-                    if x:
-                        try:
-                            i = int(x.group(1))
-                            d = int(x.group(2))
-                            #print(f"d{i}_detect_pwr =", d)
-                            self.__new_location.performance[i-1].PER = d
-                        except Exception as ex:
-                            print(ex)
+    #                 x = re.search(r"d(\d+)_detect_pwr = (.*)", line)
+    #                 if x:
+    #                     try:
+    #                         i = int(x.group(1))
+    #                         d = int(x.group(2))
+    #                         #print(f"d{i}_detect_pwr =", d)
+    #                         self.__new_location.performance[i-1].PER = d
+    #                     except Exception as ex:
+    #                         print(ex)
                         
-                        continue
+    #                     continue
                     
-                    x = re.search(r"d(\d+)_maxtappwr = (.*)", line)
-                    if x:
-                        try:
-                            i = int(x.group(1))
-                            d = int(x.group(2))
-                            #print(f"d{i}_maxtappwr =", d)
-                            self.__new_location.performance[i-1].MPWR = d
-                        except Exception as ex:
-                            print(ex)
+    #                 x = re.search(r"d(\d+)_maxtappwr = (.*)", line)
+    #                 if x:
+    #                     try:
+    #                         i = int(x.group(1))
+    #                         d = int(x.group(2))
+    #                         #print(f"d{i}_maxtappwr =", d)
+    #                         self.__new_location.performance[i-1].MPWR = d
+    #                     except Exception as ex:
+    #                         print(ex)
                         
-                        continue
+    #                     continue
                     
-                    if line.startswith("uwbzone"):
-                        try:
-                            uwbzone = int(line.replace("uwbzone = ",""))
-                            self.__new_location.zone = uwbzone
-                            #print("uwbzone", uwbzone)
-                        except Exception as ex:
-                            print(ex)
+    #                 if line.startswith("uwbzone"):
+    #                     try:
+    #                         uwbzone = int(line.replace("uwbzone = ",""))
+    #                         self.__new_location.zone = uwbzone
+    #                         #print("uwbzone", uwbzone)
+    #                     except Exception as ex:
+    #                         print(ex)
 
-                        continue
+    #                     continue
 
-                    # check the finish flag
-                    if line.startswith("loopfinish = 1"):
-                        # save location info
-                        if not self.__location_queue.full():
-                            self.__location_queue.put(self.__new_location)
-                        self.__new_location = None
+    #                 # check the finish flag
+    #                 if line.startswith("loopfinish = 1"):
+    #                     # save location info
+    #                     if not self.__location_queue.full():
+    #                         self.__location_queue.put(self.__new_location)
+    #                     self.__new_location = None
 
-                        continue
+    #                     continue
                 
-                #time.sleep(0.1)
-                #print(f"Reading took {time.time() - time_start} seconds")
-    
+    #             #time.sleep(0.1)
+    #             #print(f"Reading took {time.time() - time_start} seconds")
+
+
     def retrieve_location(self):
         if not self.__location_queue.empty():
             #print("queue size", self.__location_queue.qsize())
 
             if not self.__stop_event.is_set():
-                location = Location(origin=self.__location_queue.get())
+                if self.__log_source == FROM_LOG_FILE:
+                    # make a copy of location object because QMLEngine can not bind to cross-thread object
+                    location = Location(origin=self.__location_queue.get())
 
-                if self.__time_start:
-                    print(f"Reading {location.name} took {time.time() - self.__time_start} seconds")
-                
-                self.__locations.append(location)
-                self.locationsUpdated.emit()
+                    if self.__time_start:
+                        print(f"Reading {location.name} took {time.time() - self.__time_start} seconds")
 
-                self.__time_start = time.time()
+                    self.__locations.append(location)
+                    self.locationsUpdated.emit()
+
+                    self.__time_start = time.time()
+                else:
+                    # convert from clsShareData to Location
+                    
+                    item = self.__location_queue.get()
+                    #item.printAllData()
+
+                    location = Location()
+                    location.name = f"loop {item.loopCount}"
+
+                    if self.__time_start:
+                        print(f"Reading {location.name} took {time.time() - self.__time_start} seconds")
+
+                    location.coordinate = [item.location_x, item.location_y, item.location_z]
+                    location.distance = [item.dist_d1, item.dist_d2, item.dist_d3, item.dist_d4, item.dist_d5, item.dist_d6, item.dist_d7, item.dist_d8]
+                    for anchor in item.activDevices:
+                        location.activatedAnchors[int(anchor)-1] = True
+                    for i in range(8):
+                        location.performance[i].RSSI = item.fp_pwr[i]
+                        location.performance[i].SNR = item.edge_inx[i]
+                        location.performance[i].NEV = item.fp_inx[i]
+                        location.performance[i].NER = item.max_inx[i]
+                        location.performance[i].PER = item.detected_pwr[i]
+                        location.performance[i].MPWR = item.max_pwr[i]
+                    location.zone = item.uwbZone
+
+                    self.__locations.append(location)
+                    self.locationsUpdated.emit()
+
+                    self.__time_start = time.time()
 
     def read_ble(self):
         self.__uwb_ble_info_file.read(UWB_BLE_INFO_FILE)
@@ -486,8 +527,9 @@ class DigiKeyFromLog(QObject):
         self.set_reading_log_status(not self.__is_reading_log)
         if self.__is_reading_log:
             self.__stop_event.clear()
-            self.__reading_log_thread = threading.Thread(target=self.read_log, daemon=True)
-            self.__reading_log_thread.start()
+            # if self.__log_source == FROM_LOG_FILE:
+            #     self.__reading_log_thread = threading.Thread(target=self.read_log, daemon=True)
+            #     self.__reading_log_thread.start()
         else:
             self.__stop_event.set()
     
@@ -496,10 +538,12 @@ class DigiKeyFromLog(QObject):
         self.set_ranging_status(not self.__is_ranging)
         if self.__is_ranging:
             ### START RANGING ENGINE ###
-            self.__ui_range.startRanging()
+            #self.__ui_range.startRanging()
+            self.__clsForUI.startRangingTask()
         else:
             ### STOP RANGING ENGINE ###
-            self.__ui_range.stopRanging()
+            #self.__ui_range.stopRanging()
+            self.__clsForUI.stopRangingTask()
 
     ### PROPERTIES
     car = Property(Car, fget=get_car, notify=carUpdated)

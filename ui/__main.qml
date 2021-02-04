@@ -44,4 +44,10 @@ Window {
     MainView {
         anchors.fill: parent
     }
+
+    Text {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        text: "v2.210204.1000"
+    }
 }
